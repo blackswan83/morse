@@ -9,6 +9,7 @@ End-to-end encrypted messaging with username-only registration and Ultra Protoco
 - **X3DH-like key exchange** - Forward secrecy with pre-keys
 - **Ultra Protocol** - QR-based proximity verification
 - **Recovery phrase** - 24-word BIP39-style backup
+- **Hardware key support** - YubiKey (WebAuthn/FIDO2) and Trezor integration
 
 ## Architecture
 
@@ -57,6 +58,12 @@ The client runs on `http://localhost:5173` and server on `http://localhost:3001`
 
 ### Ultra Protocol
 QR codes contain signed identity + ephemeral keys for in-person verification, preventing MITM attacks on contact addition.
+
+### Hardware Key Authentication
+- **WebAuthn/FIDO2**: Support for YubiKey and other security keys
+- **Trezor**: Hardware wallet integration via Trezor Connect
+- Keys are registered after account creation in Settings
+- Provides additional authentication factor for login
 
 ## Security Notes
 

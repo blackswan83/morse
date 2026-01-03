@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useAppStore } from '../store';
 import * as crypto from '../lib/crypto';
+import { HardwareKeyManager } from './HardwareKeyManager';
 
 interface SettingsModalProps {
   onClose: () => void;
@@ -96,6 +97,16 @@ export function SettingsModal({ onClose }: SettingsModalProps) {
                 </div>
               </div>
             </div>
+          </div>
+        </div>
+
+        {/* Hardware Keys Section */}
+        <div className="mb-6">
+          <h3 className="text-sm font-medium text-morse-400 uppercase tracking-wider mb-3">
+            Hardware Keys
+          </h3>
+          <div className="bg-morse-800/50 rounded-lg p-4">
+            <HardwareKeyManager />
           </div>
         </div>
 

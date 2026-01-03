@@ -53,6 +53,33 @@ db.exec(`
   CREATE INDEX IF NOT EXISTS idx_messages_recipient ON messages(recipient_id, delivered);
   CREATE INDEX IF NOT EXISTS idx_messages_timestamp ON messages(timestamp);
   CREATE INDEX IF NOT EXISTS idx_prekeys_username ON one_time_prekeys(username, used);
+
+  -- Hardware key support (WebAuthn/FIDO2)
+  CREATE TABLE IF NOT EXISTS webauthn_credentials (
+    id TEXT PRIMARY KEY,
+    username TEXT NOT NULL REFERENCES users(username),
+    credential_id TEXT NOT NULL UNIQUE,
+    credential_public_key BLOB NOT NULL,
+    counter INTEGER NOT NULL DEFAULT 0,
+    credential_device_type TEXT,
+    credential_backed_up INTEGER NOT NULL DEFAULT 0,
+    transports TEXT,
+    name TEXT NOT NULL DEFAULT 'Security Key',
+    created_at INTEGER NOT NULL DEFAULT (strftime('%s', 'now'))
+  );
+
+  -- Trezor hardware wallet support
+  CREATE TABLE IF NOT EXISTS trezor_keys (
+    id TEXT PRIMARY KEY,
+    username TEXT NOT NULL REFERENCES users(username),
+    public_key TEXT NOT NULL UNIQUE,
+    address TEXT NOT NULL,
+    name TEXT NOT NULL DEFAULT 'Trezor',
+    created_at INTEGER NOT NULL DEFAULT (strftime('%s', 'now'))
+  );
+
+  CREATE INDEX IF NOT EXISTS idx_webauthn_username ON webauthn_credentials(username);
+  CREATE INDEX IF NOT EXISTS idx_trezor_username ON trezor_keys(username);
 `);
 
 // User operations
@@ -143,6 +170,66 @@ export const getChallenge = db.prepare(`
 
 export const deleteChallenge = db.prepare(`
   DELETE FROM challenges WHERE username = ?
+`);
+
+// WebAuthn credential operations
+export const saveWebAuthnCredential = db.prepare(`
+  INSERT INTO webauthn_credentials (id, username, credential_id, credential_public_key, counter, credential_device_type, credential_backed_up, transports, name, created_at)
+  VALUES (@id, @username, @credentialId, @credentialPublicKey, @counter, @credentialDeviceType, @credentialBackedUp, @transports, @name, @createdAt)
+`);
+
+export const getWebAuthnCredentialsByUsername = db.prepare(`
+  SELECT id, credential_id as credentialId, credential_public_key as credentialPublicKey,
+         counter, credential_device_type as credentialDeviceType,
+         credential_backed_up as credentialBackedUp, transports, name, created_at as createdAt
+  FROM webauthn_credentials WHERE username = ?
+`);
+
+export const getWebAuthnCredentialByCredentialId = db.prepare(`
+  SELECT id, username, credential_id as credentialId, credential_public_key as credentialPublicKey,
+         counter, credential_device_type as credentialDeviceType,
+         credential_backed_up as credentialBackedUp, transports, name
+  FROM webauthn_credentials WHERE credential_id = ?
+`);
+
+export const updateWebAuthnCounter = db.prepare(`
+  UPDATE webauthn_credentials SET counter = @counter WHERE credential_id = @credentialId
+`);
+
+export const deleteWebAuthnCredential = db.prepare(`
+  DELETE FROM webauthn_credentials WHERE id = ? AND username = ?
+`);
+
+// Trezor key operations
+export const saveTrezorKey = db.prepare(`
+  INSERT INTO trezor_keys (id, username, public_key, address, name, created_at)
+  VALUES (@id, @username, @publicKey, @address, @name, @createdAt)
+`);
+
+export const getTrezorKeysByUsername = db.prepare(`
+  SELECT id, public_key as publicKey, address, name, created_at as createdAt
+  FROM trezor_keys WHERE username = ?
+`);
+
+export const getTrezorKeyByPublicKey = db.prepare(`
+  SELECT id, username, public_key as publicKey, address, name
+  FROM trezor_keys WHERE public_key = ?
+`);
+
+export const getTrezorKeyByAddress = db.prepare(`
+  SELECT id, username, public_key as publicKey, address, name
+  FROM trezor_keys WHERE address = ?
+`);
+
+export const deleteTrezorKey = db.prepare(`
+  DELETE FROM trezor_keys WHERE id = ? AND username = ?
+`);
+
+// Get all hardware keys for a user
+export const getHardwareKeyCount = db.prepare(`
+  SELECT
+    (SELECT COUNT(*) FROM webauthn_credentials WHERE username = ?) +
+    (SELECT COUNT(*) FROM trezor_keys WHERE username = ?) as count
 `);
 
 // Transaction helper

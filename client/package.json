@@ -9,6 +9,8 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "@simplewebauthn/browser": "^9.0.1",
+    "@trezor/connect-web": "^9.1.11",
     "html5-qrcode": "^2.3.8",
     "libsodium-wrappers": "^0.7.13",
     "qrcode": "^1.5.3",

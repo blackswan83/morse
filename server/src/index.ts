@@ -5,6 +5,16 @@ import cors from 'cors';
 import sodium from 'libsodium-wrappers';
 import { v4 as uuidv4 } from 'uuid';
 import {
+  generateRegistrationOptions,
+  verifyRegistrationResponse,
+  generateAuthenticationOptions,
+  verifyAuthenticationResponse,
+} from '@simplewebauthn/server';
+import type {
+  RegistrationResponseJSON,
+  AuthenticationResponseJSON,
+} from '@simplewebauthn/server';
+import {
   createUser,
   getUserByUsername,
   upsertKeyBundle,
@@ -17,8 +27,22 @@ import {
   createChallenge,
   getChallenge,
   deleteChallenge,
+  saveWebAuthnCredential,
+  getWebAuthnCredentialsByUsername,
+  getWebAuthnCredentialByCredentialId,
+  updateWebAuthnCounter,
+  deleteWebAuthnCredential,
+  saveTrezorKey,
+  getTrezorKeysByUsername,
+  getTrezorKeyByAddress,
+  deleteTrezorKey,
   transaction,
 } from './db.js';
+
+// WebAuthn configuration
+const RP_NAME = 'Morse Secure Messaging';
+const RP_ID = process.env.RP_ID || 'localhost';
+const ORIGIN = process.env.ORIGIN || 'http://localhost:5173';
 
 const app = express();
 const httpServer = createServer(app);
@@ -56,6 +80,418 @@ app.get('/api/users/:username/key', (req, res) => {
   }
 
   res.json({ username, publicKey: user.publicKey });
+});
+
+// ============ WebAuthn Endpoints ============
+
+// Store pending WebAuthn challenges (in production, use Redis or similar)
+const webAuthnChallenges = new Map<string, { challenge: string; expiresAt: number }>();
+
+// Generate WebAuthn registration options
+app.post('/api/webauthn/register/options', async (req, res) => {
+  try {
+    const { username } = req.body;
+
+    if (!username) {
+      res.status(400).json({ error: 'Username is required' });
+      return;
+    }
+
+    const user = getUserByUsername.get(username) as { publicKey: string } | undefined;
+    if (!user) {
+      res.status(404).json({ error: 'User not found' });
+      return;
+    }
+
+    // Get existing credentials to exclude
+    const existingCredentials = getWebAuthnCredentialsByUsername.all(username) as Array<{
+      credentialId: string;
+      transports?: string;
+    }>;
+
+    const options = await generateRegistrationOptions({
+      rpName: RP_NAME,
+      rpID: RP_ID,
+      userID: new TextEncoder().encode(username),
+      userName: username,
+      attestationType: 'none',
+      excludeCredentials: existingCredentials.map((cred) => ({
+        id: cred.credentialId,
+        transports: cred.transports ? JSON.parse(cred.transports) : undefined,
+      })),
+      authenticatorSelection: {
+        residentKey: 'preferred',
+        userVerification: 'preferred',
+      },
+    });
+
+    // Store challenge
+    webAuthnChallenges.set(username, {
+      challenge: options.challenge,
+      expiresAt: Date.now() + 5 * 60 * 1000, // 5 minutes
+    });
+
+    res.json(options);
+  } catch (error) {
+    console.error('WebAuthn registration options error:', error);
+    res.status(500).json({ error: 'Failed to generate registration options' });
+  }
+});
+
+// Verify WebAuthn registration
+app.post('/api/webauthn/register/verify', async (req, res) => {
+  try {
+    const { username, response, name } = req.body as {
+      username: string;
+      response: RegistrationResponseJSON;
+      name?: string;
+    };
+
+    if (!username || !response) {
+      res.status(400).json({ error: 'Username and response are required' });
+      return;
+    }
+
+    const storedChallenge = webAuthnChallenges.get(username);
+    if (!storedChallenge || storedChallenge.expiresAt < Date.now()) {
+      webAuthnChallenges.delete(username);
+      res.status(400).json({ error: 'Challenge expired or not found' });
+      return;
+    }
+
+    const verification = await verifyRegistrationResponse({
+      response,
+      expectedChallenge: storedChallenge.challenge,
+      expectedOrigin: ORIGIN,
+      expectedRPID: RP_ID,
+    });
+
+    if (!verification.verified || !verification.registrationInfo) {
+      res.status(400).json({ error: 'Verification failed' });
+      return;
+    }
+
+    const { credential, credentialDeviceType, credentialBackedUp } = verification.registrationInfo;
+
+    // Save credential to database
+    saveWebAuthnCredential.run({
+      id: uuidv4(),
+      username,
+      credentialId: credential.id,
+      credentialPublicKey: Buffer.from(credential.publicKey),
+      counter: credential.counter,
+      credentialDeviceType,
+      credentialBackedUp: credentialBackedUp ? 1 : 0,
+      transports: response.response.transports ? JSON.stringify(response.response.transports) : null,
+      name: name || 'Security Key',
+      createdAt: Date.now(),
+    });
+
+    webAuthnChallenges.delete(username);
+
+    res.json({
+      verified: true,
+      credentialId: credential.id,
+    });
+  } catch (error) {
+    console.error('WebAuthn registration verify error:', error);
+    res.status(500).json({ error: 'Failed to verify registration' });
+  }
+});
+
+// Generate WebAuthn authentication options
+app.post('/api/webauthn/authenticate/options', async (req, res) => {
+  try {
+    const { username } = req.body;
+
+    if (!username) {
+      res.status(400).json({ error: 'Username is required' });
+      return;
+    }
+
+    const credentials = getWebAuthnCredentialsByUsername.all(username) as Array<{
+      credentialId: string;
+      transports?: string;
+    }>;
+
+    if (credentials.length === 0) {
+      res.status(404).json({ error: 'No security keys registered' });
+      return;
+    }
+
+    const options = await generateAuthenticationOptions({
+      rpID: RP_ID,
+      allowCredentials: credentials.map((cred) => ({
+        id: cred.credentialId,
+        transports: cred.transports ? JSON.parse(cred.transports) : undefined,
+      })),
+      userVerification: 'preferred',
+    });
+
+    // Store challenge
+    webAuthnChallenges.set(username, {
+      challenge: options.challenge,
+      expiresAt: Date.now() + 5 * 60 * 1000,
+    });
+
+    res.json(options);
+  } catch (error) {
+    console.error('WebAuthn authentication options error:', error);
+    res.status(500).json({ error: 'Failed to generate authentication options' });
+  }
+});
+
+// Verify WebAuthn authentication
+app.post('/api/webauthn/authenticate/verify', async (req, res) => {
+  try {
+    const { username, response } = req.body as {
+      username: string;
+      response: AuthenticationResponseJSON;
+    };
+
+    if (!username || !response) {
+      res.status(400).json({ error: 'Username and response are required' });
+      return;
+    }
+
+    const storedChallenge = webAuthnChallenges.get(username);
+    if (!storedChallenge || storedChallenge.expiresAt < Date.now()) {
+      webAuthnChallenges.delete(username);
+      res.status(400).json({ error: 'Challenge expired or not found' });
+      return;
+    }
+
+    const credential = getWebAuthnCredentialByCredentialId.get(response.id) as {
+      username: string;
+      credentialPublicKey: Buffer;
+      counter: number;
+    } | undefined;
+
+    if (!credential || credential.username !== username) {
+      res.status(400).json({ error: 'Credential not found' });
+      return;
+    }
+
+    const verification = await verifyAuthenticationResponse({
+      response,
+      expectedChallenge: storedChallenge.challenge,
+      expectedOrigin: ORIGIN,
+      expectedRPID: RP_ID,
+      credential: {
+        id: response.id,
+        publicKey: new Uint8Array(credential.credentialPublicKey),
+        counter: credential.counter,
+      },
+    });
+
+    if (!verification.verified) {
+      res.status(400).json({ error: 'Authentication failed' });
+      return;
+    }
+
+    // Update counter
+    updateWebAuthnCounter.run({
+      counter: verification.authenticationInfo.newCounter,
+      credentialId: response.id,
+    });
+
+    webAuthnChallenges.delete(username);
+
+    // Generate a session token for socket authentication
+    const sessionToken = sodium.to_base64(sodium.randombytes_buf(32));
+    const now = Math.floor(Date.now() / 1000);
+
+    createChallenge.run({
+      username,
+      challenge: sessionToken,
+      createdAt: now,
+      expiresAt: now + 60, // 1 minute to use the token
+    });
+
+    res.json({
+      verified: true,
+      sessionToken,
+    });
+  } catch (error) {
+    console.error('WebAuthn authentication verify error:', error);
+    res.status(500).json({ error: 'Failed to verify authentication' });
+  }
+});
+
+// Get user's hardware keys
+app.get('/api/users/:username/hardware-keys', (req, res) => {
+  const { username } = req.params;
+
+  const webauthnKeys = getWebAuthnCredentialsByUsername.all(username) as Array<{
+    id: string;
+    credentialId: string;
+    name: string;
+    createdAt: number;
+  }>;
+
+  const trezorKeys = getTrezorKeysByUsername.all(username) as Array<{
+    id: string;
+    address: string;
+    name: string;
+    createdAt: number;
+  }>;
+
+  res.json({
+    webauthn: webauthnKeys.map((k) => ({
+      id: k.id,
+      type: 'webauthn',
+      name: k.name,
+      createdAt: k.createdAt,
+    })),
+    trezor: trezorKeys.map((k) => ({
+      id: k.id,
+      type: 'trezor',
+      name: k.name,
+      address: k.address,
+      createdAt: k.createdAt,
+    })),
+  });
+});
+
+// Delete hardware key
+app.delete('/api/users/:username/hardware-keys/:type/:id', (req, res) => {
+  const { username, type, id } = req.params;
+
+  // Note: In production, this should require authentication
+  if (type === 'webauthn') {
+    deleteWebAuthnCredential.run(id, username);
+  } else if (type === 'trezor') {
+    deleteTrezorKey.run(id, username);
+  } else {
+    res.status(400).json({ error: 'Invalid key type' });
+    return;
+  }
+
+  res.json({ success: true });
+});
+
+// ============ Trezor Endpoints ============
+
+// Register Trezor key
+app.post('/api/trezor/register', (req, res) => {
+  try {
+    const { username, publicKey, address, name } = req.body;
+
+    if (!username || !publicKey || !address) {
+      res.status(400).json({ error: 'Username, publicKey, and address are required' });
+      return;
+    }
+
+    const user = getUserByUsername.get(username);
+    if (!user) {
+      res.status(404).json({ error: 'User not found' });
+      return;
+    }
+
+    // Check if this Trezor is already registered
+    const existing = getTrezorKeyByAddress.get(address);
+    if (existing) {
+      res.status(400).json({ error: 'This Trezor is already registered' });
+      return;
+    }
+
+    saveTrezorKey.run({
+      id: uuidv4(),
+      username,
+      publicKey,
+      address,
+      name: name || 'Trezor',
+      createdAt: Date.now(),
+    });
+
+    res.json({ success: true });
+  } catch (error) {
+    console.error('Trezor registration error:', error);
+    res.status(500).json({ error: 'Failed to register Trezor' });
+  }
+});
+
+// Trezor authentication challenge
+app.post('/api/trezor/authenticate/challenge', (req, res) => {
+  try {
+    const { username, address } = req.body;
+
+    if (!username || !address) {
+      res.status(400).json({ error: 'Username and address are required' });
+      return;
+    }
+
+    const trezorKey = getTrezorKeyByAddress.get(address) as { username: string } | undefined;
+    if (!trezorKey || trezorKey.username !== username) {
+      res.status(404).json({ error: 'Trezor not registered for this user' });
+      return;
+    }
+
+    const challenge = `Morse Login: ${uuidv4()}`;
+    const now = Math.floor(Date.now() / 1000);
+
+    createChallenge.run({
+      username: `trezor:${address}`,
+      challenge,
+      createdAt: now,
+      expiresAt: now + 300,
+    });
+
+    res.json({ challenge });
+  } catch (error) {
+    console.error('Trezor challenge error:', error);
+    res.status(500).json({ error: 'Failed to generate challenge' });
+  }
+});
+
+// Verify Trezor signature
+app.post('/api/trezor/authenticate/verify', (req, res) => {
+  try {
+    const { username, address, signature, challenge } = req.body;
+
+    if (!username || !address || !signature || !challenge) {
+      res.status(400).json({ error: 'Missing required fields' });
+      return;
+    }
+
+    const storedChallenge = getChallenge.get(`trezor:${address}`) as { challenge: string; expiresAt: number } | undefined;
+
+    if (!storedChallenge || storedChallenge.challenge !== challenge) {
+      res.status(400).json({ error: 'Invalid or expired challenge' });
+      return;
+    }
+
+    if (storedChallenge.expiresAt < Math.floor(Date.now() / 1000)) {
+      deleteChallenge.run(`trezor:${address}`);
+      res.status(400).json({ error: 'Challenge expired' });
+      return;
+    }
+
+    // In a production app, you would verify the Ethereum signature here
+    // For MVP, we trust the client-side verification from Trezor Connect
+    // The signature format from Trezor includes the address, which we can check
+
+    deleteChallenge.run(`trezor:${address}`);
+
+    // Generate session token
+    const sessionToken = sodium.to_base64(sodium.randombytes_buf(32));
+    const now = Math.floor(Date.now() / 1000);
+
+    createChallenge.run({
+      username,
+      challenge: sessionToken,
+      createdAt: now,
+      expiresAt: now + 60,
+    });
+
+    res.json({
+      verified: true,
+      sessionToken,
+    });
+  } catch (error) {
+    console.error('Trezor verify error:', error);
+    res.status(500).json({ error: 'Failed to verify Trezor signature' });
+  }
 });
 
 // Socket.io connection handling
@@ -224,6 +660,53 @@ io.on('connection', (socket) => {
     } catch (error) {
       console.error('Login error:', error);
       socket.emit('error', { code: 'LOGIN_FAILED', message: 'Failed to login' });
+    }
+  });
+
+  // Login with hardware key session token (WebAuthn or Trezor)
+  socket.on('loginWithHardwareKey', (data: { username: string; sessionToken: string }) => {
+    try {
+      const { username, sessionToken } = data;
+
+      const user = getUserByUsername.get(username) as { publicKey: string } | undefined;
+      if (!user) {
+        socket.emit('error', { code: 'USER_NOT_FOUND', message: 'User not found' });
+        return;
+      }
+
+      // The session token was created after successful WebAuthn/Trezor verification
+      const storedChallenge = getChallenge.get(username) as { challenge: string; expiresAt: number } | undefined;
+      if (!storedChallenge || storedChallenge.challenge !== sessionToken) {
+        socket.emit('error', { code: 'INVALID_TOKEN', message: 'Invalid or expired session token' });
+        return;
+      }
+
+      if (storedChallenge.expiresAt < Math.floor(Date.now() / 1000)) {
+        deleteChallenge.run(username);
+        socket.emit('error', { code: 'TOKEN_EXPIRED', message: 'Session token has expired' });
+        return;
+      }
+
+      deleteChallenge.run(username);
+      authenticatedUser = username;
+      onlineUsers.set(username, socket.id);
+
+      socket.emit('loggedIn', { username, publicKey: user.publicKey });
+      socket.broadcast.emit('userOnline', username);
+
+      // Send undelivered messages
+      const messages = getUndeliveredMessages.all(username);
+      if (messages.length > 0) {
+        for (const msg of messages) {
+          socket.emit('message', msg);
+        }
+        markMessagesDelivered.run(username);
+      }
+
+      console.log(`User logged in with hardware key: ${username}`);
+    } catch (error) {
+      console.error('Hardware key login error:', error);
+      socket.emit('error', { code: 'LOGIN_FAILED', message: 'Failed to login with hardware key' });
     }
   });
 

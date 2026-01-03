@@ -58,6 +58,7 @@ interface AppState {
   initialize: () => Promise<void>;
   register: (username: string) => Promise<{ success: boolean; recoveryPhrase?: string; error?: string }>;
   login: () => Promise<{ success: boolean; error?: string }>;
+  loginWithHardwareKey: (sessionToken: string) => Promise<{ success: boolean; error?: string }>;
   logout: () => Promise<void>;
   addContact: (username: string) => Promise<{ success: boolean; error?: string }>;
   sendMessage: (recipientUsername: string, content: string) => Promise<void>;
@@ -264,6 +265,51 @@ export const useAppStore = create<AppState>((set, get) => ({
       });
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Login failed';
+      set({ isLoading: false, error: message });
+      return { success: false, error: message };
+    }
+  },
+
+  // Login with hardware key (WebAuthn or Trezor)
+  loginWithHardwareKey: async (sessionToken: string) => {
+    const { username } = get();
+
+    if (!username) {
+      return { success: false, error: 'No stored credentials' };
+    }
+
+    try {
+      set({ isLoading: true, error: null });
+
+      const socket = io('http://localhost:3001', {
+        transports: ['websocket'],
+      });
+
+      return new Promise((resolve) => {
+        socket.on('connect', () => {
+          set({ socket, connected: true });
+          socket.emit('loginWithHardwareKey', { username, sessionToken });
+        });
+
+        socket.on('loggedIn', () => {
+          set({ isAuthenticated: true, isLoading: false });
+          setupSocketListeners(socket, get, set);
+          resolve({ success: true });
+        });
+
+        socket.on('error', (error: { code: string; message: string }) => {
+          set({ isLoading: false, error: error.message });
+          socket.disconnect();
+          resolve({ success: false, error: error.message });
+        });
+
+        socket.on('connect_error', () => {
+          set({ isLoading: false, error: 'Failed to connect to server' });
+          resolve({ success: false, error: 'Failed to connect to server' });
+        });
+      });
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Hardware key login failed';
       set({ isLoading: false, error: message });
       return { success: false, error: message };
     }
