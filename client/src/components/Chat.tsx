@@ -5,11 +5,15 @@ import { ChatWindow } from './ChatWindow';
 import { AddContactModal } from './AddContactModal';
 import { UltraVerifyModal } from './UltraVerifyModal';
 import { SettingsModal } from './SettingsModal';
+import PhoneDialer from './PhoneDialer';
+import SmsComposer from './SmsComposer';
 
 export function Chat() {
   const [showAddContact, setShowAddContact] = useState(false);
   const [showUltraVerify, setShowUltraVerify] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
+  const [showPhone, setShowPhone] = useState(false);
+  const [showSms, setShowSms] = useState(false);
   const { selectedContact } = useAppStore();
 
   return (
@@ -18,6 +22,8 @@ export function Chat() {
         onAddContact={() => setShowAddContact(true)}
         onUltraVerify={() => setShowUltraVerify(true)}
         onSettings={() => setShowSettings(true)}
+        onPhone={() => setShowPhone(true)}
+        onSms={() => setShowSms(true)}
       />
 
       <div className="flex-1 flex flex-col">
@@ -50,6 +56,14 @@ export function Chat() {
 
       {showSettings && (
         <SettingsModal onClose={() => setShowSettings(false)} />
+      )}
+
+      {showPhone && (
+        <PhoneDialer onClose={() => setShowPhone(false)} />
+      )}
+
+      {showSms && (
+        <SmsComposer onClose={() => setShowSms(false)} />
       )}
     </div>
   );

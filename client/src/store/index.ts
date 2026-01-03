@@ -246,7 +246,7 @@ export const useAppStore = create<AppState>((set, get) => ({
           });
         });
 
-        socket.on('loggedIn', (data: { username: string }) => {
+        socket.on('loggedIn', (_data: { username: string }) => {
           set({ isAuthenticated: true, isLoading: false });
           setupSocketListeners(socket, get, set);
           resolve({ success: true });
@@ -611,7 +611,8 @@ function setupSocketListeners(
     if (msg.type === 'key_exchange' && msg.ephemeralKey) {
       // Handle incoming key exchange
       try {
-        const theirEphemeralKey = crypto.fromBase64(msg.ephemeralKey);
+        // Validate the ephemeral key format
+        crypto.fromBase64(msg.ephemeralKey);
 
         // We need to get their identity key from the server or the message
         // For now, request their key bundle if we don't have them as a contact
@@ -679,7 +680,7 @@ function setupSocketListeners(
     }
   });
 
-  socket.on('messageSent', (data: { id: string; timestamp: number }) => {
+  socket.on('messageSent', (_data: { id: string; timestamp: number }) => {
     // Could update message delivery status here
   });
 

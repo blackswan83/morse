@@ -10,10 +10,9 @@ import {
   generateAuthenticationOptions,
   verifyAuthenticationResponse,
 } from '@simplewebauthn/server';
-import type {
-  RegistrationResponseJSON,
-  AuthenticationResponseJSON,
-} from '@simplewebauthn/server';
+// Types inferred from function parameters
+type RegistrationResponseJSON = Parameters<typeof verifyRegistrationResponse>[0]['response'];
+type AuthenticationResponseJSON = Parameters<typeof verifyAuthenticationResponse>[0]['response'];
 import {
   createUser,
   getUserByUsername,
@@ -38,6 +37,21 @@ import {
   deleteTrezorKey,
   transaction,
 } from './db.js';
+import {
+  initTwilio,
+  isTwilioConfigured,
+  generateVoiceToken,
+  getCredits,
+  addUserCredits,
+  sendSms,
+  initiateCall,
+  handleCallStatusWebhook,
+  getCallHistory,
+  getSmsHistory,
+  generateClientTwiML,
+  isValidPhoneNumber,
+  formatPhoneNumber,
+} from './telephony.js';
 
 // WebAuthn configuration
 const RP_NAME = 'Morse Secure Messaging';
@@ -64,9 +78,149 @@ const onlineUsers = new Map<string, string>(); // username -> socketId
 // Wait for libsodium to be ready
 await sodium.ready;
 
+// Initialize Twilio
+initTwilio();
+
 // Health check endpoint
 app.get('/health', (req, res) => {
-  res.json({ status: 'ok', timestamp: Date.now() });
+  res.json({ status: 'ok', timestamp: Date.now(), twilioConfigured: isTwilioConfigured() });
+});
+
+// ============ Telephony Endpoints ============
+
+// Check if telephony is available
+app.get('/api/telephony/status', (req, res) => {
+  res.json({ available: isTwilioConfigured() });
+});
+
+// Get voice token for browser-based calling
+app.post('/api/telephony/voice-token', (req, res) => {
+  const { username } = req.body;
+
+  if (!username) {
+    res.status(400).json({ error: 'Username is required' });
+    return;
+  }
+
+  if (!isTwilioConfigured()) {
+    res.status(503).json({ error: 'Telephony not configured' });
+    return;
+  }
+
+  const token = generateVoiceToken(username);
+  if (!token) {
+    res.status(500).json({ error: 'Failed to generate voice token' });
+    return;
+  }
+
+  res.json({ token });
+});
+
+// Get user's phone credits
+app.get('/api/telephony/credits/:username', (req, res) => {
+  const { username } = req.params;
+  const balanceCents = getCredits(username);
+  res.json({ balanceCents, balanceFormatted: `$${(balanceCents / 100).toFixed(2)}` });
+});
+
+// Add credits (in production, this would be behind payment verification)
+app.post('/api/telephony/credits/add', (req, res) => {
+  const { username, amountCents } = req.body;
+
+  if (!username || typeof amountCents !== 'number' || amountCents <= 0) {
+    res.status(400).json({ error: 'Valid username and amountCents required' });
+    return;
+  }
+
+  const success = addUserCredits(username, amountCents);
+  if (success) {
+    const newBalance = getCredits(username);
+    res.json({ success: true, balanceCents: newBalance });
+  } else {
+    res.status(500).json({ error: 'Failed to add credits' });
+  }
+});
+
+// Send SMS
+app.post('/api/telephony/sms/send', async (req, res) => {
+  const { username, to, body } = req.body;
+
+  if (!username || !to || !body) {
+    res.status(400).json({ error: 'Username, to, and body are required' });
+    return;
+  }
+
+  const formattedNumber = formatPhoneNumber(to);
+  if (!isValidPhoneNumber(formattedNumber)) {
+    res.status(400).json({ error: 'Invalid phone number format' });
+    return;
+  }
+
+  const result = await sendSms(username, formattedNumber, body);
+  if (result.success) {
+    res.json({ success: true, messageId: result.messageId });
+  } else {
+    res.status(400).json({ error: result.error });
+  }
+});
+
+// Get SMS history
+app.get('/api/telephony/sms/history/:username', (req, res) => {
+  const { username } = req.params;
+  const history = getSmsHistory(username);
+  res.json({ messages: history });
+});
+
+// Initiate call
+app.post('/api/telephony/call/initiate', async (req, res) => {
+  const { username, to } = req.body;
+
+  if (!username || !to) {
+    res.status(400).json({ error: 'Username and to are required' });
+    return;
+  }
+
+  const formattedNumber = formatPhoneNumber(to);
+  if (!isValidPhoneNumber(formattedNumber)) {
+    res.status(400).json({ error: 'Invalid phone number format' });
+    return;
+  }
+
+  const callbackUrl = process.env.CALLBACK_URL || 'http://localhost:3001/api/telephony';
+  const result = await initiateCall(username, formattedNumber, callbackUrl);
+
+  if (result.success) {
+    res.json({ success: true, callId: result.callId });
+  } else {
+    res.status(400).json({ error: result.error });
+  }
+});
+
+// Get call history
+app.get('/api/telephony/call/history/:username', (req, res) => {
+  const { username } = req.params;
+  const history = getCallHistory(username);
+  res.json({ calls: history });
+});
+
+// Twilio webhooks
+app.post('/api/telephony/webhook/call-status', express.urlencoded({ extended: false }), (req, res) => {
+  handleCallStatusWebhook(req.body);
+  res.status(200).send('OK');
+});
+
+// TwiML for browser-initiated calls
+app.post('/api/telephony/twiml/voice', express.urlencoded({ extended: false }), (req, res) => {
+  const to = req.body.To;
+
+  if (!to) {
+    res.status(400).send('No destination number');
+    return;
+  }
+
+  const twiml = generateClientTwiML(to);
+  res.type('text/xml');
+  res.send(twiml);
 });
 
 // Get user public key (REST endpoint for key transparency)
@@ -112,11 +266,12 @@ app.post('/api/webauthn/register/options', async (req, res) => {
     const options = await generateRegistrationOptions({
       rpName: RP_NAME,
       rpID: RP_ID,
-      userID: new TextEncoder().encode(username),
+      userID: username,
       userName: username,
       attestationType: 'none',
       excludeCredentials: existingCredentials.map((cred) => ({
-        id: cred.credentialId,
+        id: Buffer.from(cred.credentialId, 'base64url'),
+        type: 'public-key' as const,
         transports: cred.transports ? JSON.parse(cred.transports) : undefined,
       })),
       authenticatorSelection: {
@@ -171,15 +326,15 @@ app.post('/api/webauthn/register/verify', async (req, res) => {
       return;
     }
 
-    const { credential, credentialDeviceType, credentialBackedUp } = verification.registrationInfo;
+    const { credentialID, credentialPublicKey, counter, credentialDeviceType, credentialBackedUp } = verification.registrationInfo;
 
     // Save credential to database
     saveWebAuthnCredential.run({
       id: uuidv4(),
       username,
-      credentialId: credential.id,
-      credentialPublicKey: Buffer.from(credential.publicKey),
-      counter: credential.counter,
+      credentialId: Buffer.from(credentialID).toString('base64url'),
+      credentialPublicKey: Buffer.from(credentialPublicKey),
+      counter,
       credentialDeviceType,
       credentialBackedUp: credentialBackedUp ? 1 : 0,
       transports: response.response.transports ? JSON.stringify(response.response.transports) : null,
@@ -191,7 +346,7 @@ app.post('/api/webauthn/register/verify', async (req, res) => {
 
     res.json({
       verified: true,
-      credentialId: credential.id,
+      credentialId: Buffer.from(credentialID).toString('base64url'),
     });
   } catch (error) {
     console.error('WebAuthn registration verify error:', error);
@@ -222,7 +377,8 @@ app.post('/api/webauthn/authenticate/options', async (req, res) => {
     const options = await generateAuthenticationOptions({
       rpID: RP_ID,
       allowCredentials: credentials.map((cred) => ({
-        id: cred.credentialId,
+        id: Buffer.from(cred.credentialId, 'base64url'),
+        type: 'public-key' as const,
         transports: cred.transports ? JSON.parse(cred.transports) : undefined,
       })),
       userVerification: 'preferred',
@@ -277,9 +433,9 @@ app.post('/api/webauthn/authenticate/verify', async (req, res) => {
       expectedChallenge: storedChallenge.challenge,
       expectedOrigin: ORIGIN,
       expectedRPID: RP_ID,
-      credential: {
-        id: response.id,
-        publicKey: new Uint8Array(credential.credentialPublicKey),
+      authenticator: {
+        credentialID: Buffer.from(response.id, 'base64url'),
+        credentialPublicKey: new Uint8Array(credential.credentialPublicKey),
         counter: credential.counter,
       },
     });

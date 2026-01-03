@@ -80,6 +80,41 @@ db.exec(`
 
   CREATE INDEX IF NOT EXISTS idx_webauthn_username ON webauthn_credentials(username);
   CREATE INDEX IF NOT EXISTS idx_trezor_username ON trezor_keys(username);
+
+  -- Telephony support (VoIP calls and SMS)
+  CREATE TABLE IF NOT EXISTS phone_credits (
+    username TEXT PRIMARY KEY REFERENCES users(username),
+    balance_cents INTEGER NOT NULL DEFAULT 0,
+    updated_at INTEGER NOT NULL DEFAULT (strftime('%s', 'now'))
+  );
+
+  CREATE TABLE IF NOT EXISTS call_logs (
+    id TEXT PRIMARY KEY,
+    username TEXT NOT NULL REFERENCES users(username),
+    direction TEXT NOT NULL CHECK(direction IN ('inbound', 'outbound')),
+    phone_number TEXT NOT NULL,
+    status TEXT NOT NULL DEFAULT 'initiated',
+    duration_seconds INTEGER DEFAULT 0,
+    cost_cents INTEGER DEFAULT 0,
+    twilio_sid TEXT,
+    started_at INTEGER NOT NULL DEFAULT (strftime('%s', 'now') * 1000),
+    ended_at INTEGER
+  );
+
+  CREATE TABLE IF NOT EXISTS sms_logs (
+    id TEXT PRIMARY KEY,
+    username TEXT NOT NULL REFERENCES users(username),
+    direction TEXT NOT NULL CHECK(direction IN ('inbound', 'outbound')),
+    phone_number TEXT NOT NULL,
+    body TEXT NOT NULL,
+    status TEXT NOT NULL DEFAULT 'queued',
+    cost_cents INTEGER DEFAULT 0,
+    twilio_sid TEXT,
+    created_at INTEGER NOT NULL DEFAULT (strftime('%s', 'now') * 1000)
+  );
+
+  CREATE INDEX IF NOT EXISTS idx_call_logs_username ON call_logs(username);
+  CREATE INDEX IF NOT EXISTS idx_sms_logs_username ON sms_logs(username);
 `);
 
 // User operations
@@ -230,6 +265,80 @@ export const getHardwareKeyCount = db.prepare(`
   SELECT
     (SELECT COUNT(*) FROM webauthn_credentials WHERE username = ?) +
     (SELECT COUNT(*) FROM trezor_keys WHERE username = ?) as count
+`);
+
+// Phone credits operations
+export const getPhoneCredits = db.prepare(`
+  SELECT balance_cents as balanceCents, updated_at as updatedAt
+  FROM phone_credits WHERE username = ?
+`);
+
+export const upsertPhoneCredits = db.prepare(`
+  INSERT INTO phone_credits (username, balance_cents, updated_at)
+  VALUES (@username, @balanceCents, @updatedAt)
+  ON CONFLICT(username) DO UPDATE SET
+    balance_cents = @balanceCents,
+    updated_at = @updatedAt
+`);
+
+export const deductCredits = db.prepare(`
+  UPDATE phone_credits
+  SET balance_cents = balance_cents - @amount, updated_at = @updatedAt
+  WHERE username = @username AND balance_cents >= @amount
+`);
+
+export const addCredits = db.prepare(`
+  INSERT INTO phone_credits (username, balance_cents, updated_at)
+  VALUES (@username, @amount, @updatedAt)
+  ON CONFLICT(username) DO UPDATE SET
+    balance_cents = balance_cents + @amount,
+    updated_at = @updatedAt
+`);
+
+// Call log operations
+export const saveCallLog = db.prepare(`
+  INSERT INTO call_logs (id, username, direction, phone_number, status, twilio_sid, started_at)
+  VALUES (@id, @username, @direction, @phoneNumber, @status, @twilioSid, @startedAt)
+`);
+
+export const updateCallLog = db.prepare(`
+  UPDATE call_logs SET
+    status = @status,
+    duration_seconds = @durationSeconds,
+    cost_cents = @costCents,
+    ended_at = @endedAt
+  WHERE id = @id
+`);
+
+export const getCallLogsByUsername = db.prepare(`
+  SELECT id, direction, phone_number as phoneNumber, status, duration_seconds as durationSeconds,
+         cost_cents as costCents, started_at as startedAt, ended_at as endedAt
+  FROM call_logs WHERE username = ? ORDER BY started_at DESC LIMIT 50
+`);
+
+export const getCallLogByTwilioSid = db.prepare(`
+  SELECT id, username, direction, phone_number as phoneNumber, status
+  FROM call_logs WHERE twilio_sid = ?
+`);
+
+// SMS log operations
+export const saveSmsLog = db.prepare(`
+  INSERT INTO sms_logs (id, username, direction, phone_number, body, status, twilio_sid, created_at)
+  VALUES (@id, @username, @direction, @phoneNumber, @body, @status, @twilioSid, @createdAt)
+`);
+
+export const updateSmsLog = db.prepare(`
+  UPDATE sms_logs SET status = @status, cost_cents = @costCents WHERE id = @id
+`);
+
+export const getSmsLogsByUsername = db.prepare(`
+  SELECT id, direction, phone_number as phoneNumber, body, status, cost_cents as costCents, created_at as createdAt
+  FROM sms_logs WHERE username = ? ORDER BY created_at DESC LIMIT 50
+`);
+
+export const getSmsLogByTwilioSid = db.prepare(`
+  SELECT id, username, direction, phone_number as phoneNumber, status
+  FROM sms_logs WHERE twilio_sid = ?
 `);
 
 // Transaction helper

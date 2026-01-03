@@ -4,10 +4,8 @@ import {
   isWebAuthnSupported,
   registerWebAuthn,
   registerTrezor,
-  getStoredHardwareKeys,
   storeHardwareKey,
   removeHardwareKey,
-  type HardwareKeyInfo,
 } from '../lib/hardwareKey';
 
 interface HardwareKey {

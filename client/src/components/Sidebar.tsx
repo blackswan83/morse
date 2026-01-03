@@ -4,9 +4,11 @@ interface SidebarProps {
   onAddContact: () => void;
   onUltraVerify: () => void;
   onSettings: () => void;
+  onPhone: () => void;
+  onSms: () => void;
 }
 
-export function Sidebar({ onAddContact, onUltraVerify, onSettings }: SidebarProps) {
+export function Sidebar({ onAddContact, onUltraVerify, onSettings, onPhone, onSms }: SidebarProps) {
   const { username, contacts, selectedContact, selectContact, connected, messages } = useAppStore();
 
   const contactsList = Array.from(contacts.values()).sort((a, b) => {
@@ -72,6 +74,28 @@ export function Sidebar({ onAddContact, onUltraVerify, onSettings }: SidebarProp
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v1m6 11h2m-6 0h-2v4m0-11v3m0 0h.01M12 12h4.01M16 20h4M4 12h4m12 0h.01M5 8h2a1 1 0 001-1V5a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1zm12 0h2a1 1 0 001-1V5a1 1 0 00-1-1h-2a1 1 0 00-1 1v2a1 1 0 001 1zM5 20h2a1 1 0 001-1v-2a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1z" />
             </svg>
             <span>Ultra</span>
+          </button>
+        </div>
+
+        {/* Phone and SMS buttons */}
+        <div className="flex space-x-2 mt-2">
+          <button
+            onClick={onPhone}
+            className="flex-1 btn-secondary text-sm flex items-center justify-center space-x-2"
+          >
+            <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
+              <path d="M20.01 15.38c-1.23 0-2.42-.2-3.53-.56a.977.977 0 00-1.01.24l-1.57 1.97c-2.83-1.35-5.48-3.9-6.89-6.83l1.95-1.66c.27-.28.35-.67.24-1.02-.37-1.11-.56-2.3-.56-3.53 0-.54-.45-.99-.99-.99H4.19C3.65 3 3 3.24 3 3.99 3 13.28 10.73 21 20.01 21c.71 0 .99-.63.99-1.18v-3.45c0-.54-.45-.99-.99-.99z" />
+            </svg>
+            <span>Phone</span>
+          </button>
+          <button
+            onClick={onSms}
+            className="flex-1 btn-secondary text-sm flex items-center justify-center space-x-2"
+          >
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z" />
+            </svg>
+            <span>SMS</span>
           </button>
         </div>
       </div>

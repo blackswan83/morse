@@ -8,12 +8,12 @@ import {
   startAuthentication,
   browserSupportsWebAuthn,
 } from '@simplewebauthn/browser';
-import type {
-  PublicKeyCredentialCreationOptionsJSON,
-  PublicKeyCredentialRequestOptionsJSON,
-  RegistrationResponseJSON,
-  AuthenticationResponseJSON,
-} from '@simplewebauthn/browser';
+
+// Define types locally to avoid version mismatches
+type PublicKeyCredentialCreationOptionsJSON = Parameters<typeof startRegistration>[0];
+type PublicKeyCredentialRequestOptionsJSON = Parameters<typeof startAuthentication>[0];
+type RegistrationResponseJSON = Awaited<ReturnType<typeof startRegistration>>;
+type AuthenticationResponseJSON = Awaited<ReturnType<typeof startAuthentication>>;
 
 // Trezor types
 interface TrezorSignMessageResult {
@@ -75,6 +75,7 @@ async function initTrezor(): Promise<void> {
       manifest: {
         email: 'security@morse.app',
         appUrl: window.location.origin,
+        appName: 'Morse Secure Messaging',
       },
     });
     trezorInitialized = true;
