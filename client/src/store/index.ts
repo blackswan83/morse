@@ -2,6 +2,7 @@ import { create } from 'zustand';
 import { io, Socket } from 'socket.io-client';
 import * as crypto from '../lib/crypto';
 import * as storage from '../lib/storage';
+import { config } from '../lib/config';
 
 interface Contact {
   username: string;
@@ -155,7 +156,7 @@ export const useAppStore = create<AppState>((set, get) => ({
       const recoveryPhrase = crypto.generateRecoveryPhrase();
 
       // Connect socket
-      const socket = io('http://localhost:3001', {
+      const socket = io(config.wsUrl, {
         transports: ['websocket'],
       });
 
@@ -224,7 +225,7 @@ export const useAppStore = create<AppState>((set, get) => ({
     try {
       set({ isLoading: true, error: null });
 
-      const socket = io('http://localhost:3001', {
+      const socket = io(config.wsUrl, {
         transports: ['websocket'],
       });
 
@@ -281,7 +282,7 @@ export const useAppStore = create<AppState>((set, get) => ({
     try {
       set({ isLoading: true, error: null });
 
-      const socket = io('http://localhost:3001', {
+      const socket = io(config.wsUrl, {
         transports: ['websocket'],
       });
 

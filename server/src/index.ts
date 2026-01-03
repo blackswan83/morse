@@ -57,6 +57,9 @@ import {
 const RP_NAME = 'Morse Secure Messaging';
 const RP_ID = process.env.RP_ID || 'localhost';
 const ORIGIN = process.env.ORIGIN || 'http://localhost:5173';
+const CORS_ORIGINS = process.env.CORS_ORIGINS
+  ? process.env.CORS_ORIGINS.split(',')
+  : ['http://localhost:5173', 'http://localhost:3000'];
 
 const app = express();
 const httpServer = createServer(app);
@@ -64,12 +67,15 @@ const httpServer = createServer(app);
 // Initialize Socket.io with CORS
 const io = new Server(httpServer, {
   cors: {
-    origin: ['http://localhost:5173', 'http://localhost:3000'],
+    origin: CORS_ORIGINS,
     methods: ['GET', 'POST'],
   },
 });
 
-app.use(cors());
+app.use(cors({
+  origin: CORS_ORIGINS,
+  credentials: true,
+}));
 app.use(express.json());
 
 // Track online users

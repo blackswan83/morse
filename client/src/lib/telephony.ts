@@ -4,8 +4,9 @@
  */
 
 import { Device, Call } from '@twilio/voice-sdk';
+import { TELEPHONY_API } from './config';
 
-const API_BASE = 'http://localhost:3001/api/telephony';
+const API_BASE = TELEPHONY_API;
 
 interface TelephonyStatus {
   enabled: boolean;
