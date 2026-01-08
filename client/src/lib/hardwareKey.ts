@@ -8,6 +8,7 @@ import {
   startAuthentication,
   browserSupportsWebAuthn,
 } from '@simplewebauthn/browser';
+import { logger } from './logger';
 
 // Define types locally to avoid version mismatches
 type PublicKeyCredentialCreationOptionsJSON = Parameters<typeof startRegistration>[0];
@@ -80,7 +81,7 @@ async function initTrezor(): Promise<void> {
     });
     trezorInitialized = true;
   } catch (error) {
-    console.error('Failed to initialize Trezor Connect:', error);
+    logger.error('Failed to initialize Trezor Connect', error);
     throw new Error('Failed to initialize Trezor Connect');
   }
 }

@@ -5,6 +5,7 @@
 
 import Twilio from 'twilio';
 import { v4 as uuidv4 } from 'uuid';
+import { logger } from './logger.js';
 import {
   getPhoneCredits,
   addCredits,
@@ -39,16 +40,16 @@ let twilioClient: Twilio.Twilio | null = null;
 
 export function initTwilio(): boolean {
   if (!TWILIO_ACCOUNT_SID || !TWILIO_AUTH_TOKEN) {
-    console.warn('Twilio credentials not configured. Telephony features disabled.');
+    logger.warn('Twilio credentials not configured. Telephony features disabled.');
     return false;
   }
 
   try {
     twilioClient = Twilio(TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN);
-    console.log('Twilio client initialized successfully');
+    logger.info('Twilio client initialized successfully');
     return true;
   } catch (error) {
-    console.error('Failed to initialize Twilio:', error);
+    logger.error('Failed to initialize Twilio', error);
     return false;
   }
 }
@@ -99,7 +100,7 @@ export function addUserCredits(username: string, amountCents: number): boolean {
     });
     return true;
   } catch (error) {
-    console.error('Failed to add credits:', error);
+    logger.error('Failed to add credits', error);
     return false;
   }
 }
@@ -119,7 +120,7 @@ export function deductUserCredits(username: string, amountCents: number): boolea
     });
     return result.changes > 0;
   } catch (error) {
-    console.error('Failed to deduct credits:', error);
+    logger.error('Failed to deduct credits', error);
     return false;
   }
 }
@@ -166,7 +167,7 @@ export async function sendSms(
 
     return { success: true, messageId: logId };
   } catch (error) {
-    console.error('Failed to send SMS:', error);
+    logger.error('Failed to send SMS', error);
 
     // Log the failed attempt
     saveSmsLog.run({
@@ -227,7 +228,7 @@ export async function initiateCall(
 
     return { success: true, callId };
   } catch (error) {
-    console.error('Failed to initiate call:', error);
+    logger.error('Failed to initiate call', error);
 
     return {
       success: false,
@@ -249,7 +250,7 @@ export function handleCallStatusWebhook(data: {
   } | undefined;
 
   if (!callLog) {
-    console.warn('Call log not found for SID:', data.CallSid);
+    logger.warn('Call log not found for SID', { callSid: data.CallSid });
     return;
   }
 

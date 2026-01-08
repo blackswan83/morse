@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect } from 'react';
 import { useAppStore } from '../store';
+import { logger } from '../lib/logger';
 
 export function ChatWindow() {
   const [messageInput, setMessageInput] = useState('');
@@ -23,7 +24,7 @@ export function ChatWindow() {
     try {
       await sendMessage(selectedContact, content);
     } catch (error) {
-      console.error('Failed to send message:', error);
+      logger.error('Failed to send message', error);
     }
   };
 

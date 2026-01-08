@@ -2,6 +2,7 @@ import express from 'express';
 import { createServer } from 'http';
 import { Server } from 'socket.io';
 import cors from 'cors';
+import helmet from 'helmet';
 import sodium from 'libsodium-wrappers';
 import { v4 as uuidv4 } from 'uuid';
 import {
@@ -10,6 +11,21 @@ import {
   generateAuthenticationOptions,
   verifyAuthenticationResponse,
 } from '@simplewebauthn/server';
+import { AUTH, LIMITS } from './constants.js';
+import logger from './logger.js';
+import { validateUsername, validatePhoneNumber, validateSmsBody } from './validation.js';
+import {
+  requestIdMiddleware,
+  requestLoggingMiddleware,
+  generalRateLimiter,
+  authRateLimiter,
+  smsRateLimiter,
+  callRateLimiter,
+  errorHandlerMiddleware,
+  notFoundHandler,
+  setupGracefulShutdown,
+} from './middleware.js';
+
 // Types inferred from function parameters
 type RegistrationResponseJSON = Parameters<typeof verifyRegistrationResponse>[0]['response'];
 type AuthenticationResponseJSON = Parameters<typeof verifyAuthenticationResponse>[0]['response'];
@@ -72,11 +88,35 @@ const io = new Server(httpServer, {
   },
 });
 
+// Security middleware
+app.use(helmet({
+  contentSecurityPolicy: {
+    directives: {
+      defaultSrc: ["'self'"],
+      scriptSrc: ["'self'"],
+      styleSrc: ["'self'", "'unsafe-inline'"],
+      imgSrc: ["'self'", "data:"],
+    },
+  },
+  crossOriginEmbedderPolicy: false, // Required for some WebAuthn flows
+}));
+
+// Request tracking
+app.use(requestIdMiddleware);
+app.use(requestLoggingMiddleware);
+
+// CORS
 app.use(cors({
   origin: CORS_ORIGINS,
   credentials: true,
 }));
-app.use(express.json());
+
+// Body parsing with size limits
+app.use(express.json({ limit: LIMITS.JSON_BODY_SIZE }));
+app.use(express.urlencoded({ extended: false, limit: LIMITS.URL_ENCODED_SIZE }));
+
+// General rate limiting
+app.use(generalRateLimiter);
 
 // Track online users
 const onlineUsers = new Map<string, string>(); // username -> socketId
@@ -87,9 +127,20 @@ await sodium.ready;
 // Initialize Twilio
 initTwilio();
 
+logger.info('Server initialized', {
+  rpId: RP_ID,
+  origin: ORIGIN,
+  twilioConfigured: isTwilioConfigured(),
+});
+
 // Health check endpoint
-app.get('/health', (req, res) => {
-  res.json({ status: 'ok', timestamp: Date.now(), twilioConfigured: isTwilioConfigured() });
+app.get('/health', (_req, res) => {
+  res.json({
+    status: 'ok',
+    timestamp: Date.now(),
+    twilioConfigured: isTwilioConfigured(),
+    uptime: process.uptime(),
+  });
 });
 
 // ============ Telephony Endpoints ============
@@ -147,25 +198,35 @@ app.post('/api/telephony/credits/add', (req, res) => {
   }
 });
 
-// Send SMS
-app.post('/api/telephony/sms/send', async (req, res) => {
-  const { username, to, body } = req.body;
-
-  if (!username || !to || !body) {
-    res.status(400).json({ error: 'Username, to, and body are required' });
+// Send SMS (with rate limiting)
+app.post('/api/telephony/sms/send', smsRateLimiter, async (req, res) => {
+  // Validate username
+  const usernameResult = validateUsername(req.body.username);
+  if (!usernameResult.valid) {
+    res.status(400).json({ error: usernameResult.error });
     return;
   }
 
-  const formattedNumber = formatPhoneNumber(to);
-  if (!isValidPhoneNumber(formattedNumber)) {
-    res.status(400).json({ error: 'Invalid phone number format' });
+  // Validate phone number
+  const phoneResult = validatePhoneNumber(req.body.to);
+  if (!phoneResult.valid) {
+    res.status(400).json({ error: phoneResult.error });
     return;
   }
 
-  const result = await sendSms(username, formattedNumber, body);
+  // Validate SMS body
+  const bodyResult = validateSmsBody(req.body.body);
+  if (!bodyResult.valid) {
+    res.status(400).json({ error: bodyResult.error });
+    return;
+  }
+
+  const result = await sendSms(usernameResult.sanitized!, phoneResult.sanitized!, bodyResult.sanitized!);
   if (result.success) {
+    logger.info('SMS sent', { username: usernameResult.sanitized, to: phoneResult.sanitized });
     res.json({ success: true, messageId: result.messageId });
   } else {
+    logger.warn('SMS send failed', { username: usernameResult.sanitized, error: result.error });
     res.status(400).json({ error: result.error });
   }
 });
@@ -177,27 +238,30 @@ app.get('/api/telephony/sms/history/:username', (req, res) => {
   res.json({ messages: history });
 });
 
-// Initiate call
-app.post('/api/telephony/call/initiate', async (req, res) => {
-  const { username, to } = req.body;
-
-  if (!username || !to) {
-    res.status(400).json({ error: 'Username and to are required' });
+// Initiate call (with rate limiting)
+app.post('/api/telephony/call/initiate', callRateLimiter, async (req, res) => {
+  // Validate username
+  const usernameResult = validateUsername(req.body.username);
+  if (!usernameResult.valid) {
+    res.status(400).json({ error: usernameResult.error });
     return;
   }
 
-  const formattedNumber = formatPhoneNumber(to);
-  if (!isValidPhoneNumber(formattedNumber)) {
-    res.status(400).json({ error: 'Invalid phone number format' });
+  // Validate phone number
+  const phoneResult = validatePhoneNumber(req.body.to);
+  if (!phoneResult.valid) {
+    res.status(400).json({ error: phoneResult.error });
     return;
   }
 
   const callbackUrl = process.env.CALLBACK_URL || 'http://localhost:3001/api/telephony';
-  const result = await initiateCall(username, formattedNumber, callbackUrl);
+  const result = await initiateCall(usernameResult.sanitized!, phoneResult.sanitized!, callbackUrl);
 
   if (result.success) {
+    logger.info('Call initiated', { username: usernameResult.sanitized, to: phoneResult.sanitized });
     res.json({ success: true, callId: result.callId });
   } else {
+    logger.warn('Call initiation failed', { username: usernameResult.sanitized, error: result.error });
     res.status(400).json({ error: result.error });
   }
 });
@@ -247,15 +311,15 @@ app.get('/api/users/:username/key', (req, res) => {
 // Store pending WebAuthn challenges (in production, use Redis or similar)
 const webAuthnChallenges = new Map<string, { challenge: string; expiresAt: number }>();
 
-// Generate WebAuthn registration options
-app.post('/api/webauthn/register/options', async (req, res) => {
+// Generate WebAuthn registration options (with auth rate limiting)
+app.post('/api/webauthn/register/options', authRateLimiter, async (req, res) => {
   try {
-    const { username } = req.body;
-
-    if (!username) {
-      res.status(400).json({ error: 'Username is required' });
+    const usernameResult = validateUsername(req.body.username);
+    if (!usernameResult.valid) {
+      res.status(400).json({ error: usernameResult.error });
       return;
     }
+    const username = usernameResult.sanitized!;
 
     const user = getUserByUsername.get(username) as { publicKey: string } | undefined;
     if (!user) {
@@ -294,7 +358,7 @@ app.post('/api/webauthn/register/options', async (req, res) => {
 
     res.json(options);
   } catch (error) {
-    console.error('WebAuthn registration options error:', error);
+    logger.error('WebAuthn registration options error', error);
     res.status(500).json({ error: 'Failed to generate registration options' });
   }
 });
@@ -355,7 +419,7 @@ app.post('/api/webauthn/register/verify', async (req, res) => {
       credentialId: Buffer.from(credentialID).toString('base64url'),
     });
   } catch (error) {
-    console.error('WebAuthn registration verify error:', error);
+    logger.error('WebAuthn registration verify error', error);
     res.status(500).json({ error: 'Failed to verify registration' });
   }
 });
@@ -398,7 +462,7 @@ app.post('/api/webauthn/authenticate/options', async (req, res) => {
 
     res.json(options);
   } catch (error) {
-    console.error('WebAuthn authentication options error:', error);
+    logger.error('WebAuthn authentication options error', error);
     res.status(500).json({ error: 'Failed to generate authentication options' });
   }
 });
@@ -475,7 +539,7 @@ app.post('/api/webauthn/authenticate/verify', async (req, res) => {
       sessionToken,
     });
   } catch (error) {
-    console.error('WebAuthn authentication verify error:', error);
+    logger.error('WebAuthn authentication verify error', error);
     res.status(500).json({ error: 'Failed to verify authentication' });
   }
 });
@@ -568,7 +632,7 @@ app.post('/api/trezor/register', (req, res) => {
 
     res.json({ success: true });
   } catch (error) {
-    console.error('Trezor registration error:', error);
+    logger.error('Trezor registration error', error);
     res.status(500).json({ error: 'Failed to register Trezor' });
   }
 });
@@ -601,7 +665,7 @@ app.post('/api/trezor/authenticate/challenge', (req, res) => {
 
     res.json({ challenge });
   } catch (error) {
-    console.error('Trezor challenge error:', error);
+    logger.error('Trezor challenge error', error);
     res.status(500).json({ error: 'Failed to generate challenge' });
   }
 });
@@ -651,14 +715,14 @@ app.post('/api/trezor/authenticate/verify', (req, res) => {
       sessionToken,
     });
   } catch (error) {
-    console.error('Trezor verify error:', error);
+    logger.error('Trezor verify error', error);
     res.status(500).json({ error: 'Failed to verify Trezor signature' });
   }
 });
 
 // Socket.io connection handling
 io.on('connection', (socket) => {
-  console.log(`Client connected: ${socket.id}`);
+  logger.info('Client connected', { socketId: socket.id });
   let authenticatedUser: string | null = null;
 
   // Request login challenge
@@ -760,9 +824,9 @@ io.on('connection', (socket) => {
       socket.emit('registered', { username, publicKey });
       socket.broadcast.emit('userOnline', username);
 
-      console.log(`User registered: ${username}`);
+      logger.info('User registered', { username });
     } catch (error) {
-      console.error('Registration error:', error);
+      logger.error('Registration error', error);
       socket.emit('error', { code: 'REGISTRATION_FAILED', message: 'Failed to register user' });
     }
   });
@@ -818,9 +882,9 @@ io.on('connection', (socket) => {
         markMessagesDelivered.run(username);
       }
 
-      console.log(`User logged in: ${username}`);
+      logger.info('User logged in', { username });
     } catch (error) {
-      console.error('Login error:', error);
+      logger.error('Login error', error);
       socket.emit('error', { code: 'LOGIN_FAILED', message: 'Failed to login' });
     }
   });
@@ -865,9 +929,9 @@ io.on('connection', (socket) => {
         markMessagesDelivered.run(username);
       }
 
-      console.log(`User logged in with hardware key: ${username}`);
+      logger.info('User logged in with hardware key', { username });
     } catch (error) {
-      console.error('Hardware key login error:', error);
+      logger.error('Hardware key login error', error);
       socket.emit('error', { code: 'LOGIN_FAILED', message: 'Failed to login with hardware key' });
     }
   });
@@ -976,15 +1040,25 @@ io.on('connection', (socket) => {
     if (authenticatedUser) {
       onlineUsers.delete(authenticatedUser);
       socket.broadcast.emit('userOffline', authenticatedUser);
-      console.log(`User disconnected: ${authenticatedUser}`);
+      logger.info('User disconnected', { username: authenticatedUser, socketId: socket.id });
+    } else {
+      logger.debug('Client disconnected', { socketId: socket.id });
     }
-    console.log(`Client disconnected: ${socket.id}`);
   });
 });
+
+// Error handling middleware (must be last)
+app.use(errorHandlerMiddleware);
+app.use(notFoundHandler);
 
 const PORT = process.env.PORT || 3001;
 
 httpServer.listen(PORT, () => {
-  console.log(`Morse server running on port ${PORT}`);
-  console.log(`WebSocket endpoint: ws://localhost:${PORT}`);
+  logger.info(`Morse server running`, { port: PORT, nodeEnv: process.env.NODE_ENV });
+});
+
+// Setup graceful shutdown
+setupGracefulShutdown(httpServer, async () => {
+  // Close database connections, etc.
+  logger.info('Cleanup complete');
 });

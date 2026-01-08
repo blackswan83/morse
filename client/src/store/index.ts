@@ -3,6 +3,8 @@ import { io, Socket } from 'socket.io-client';
 import * as crypto from '../lib/crypto';
 import * as storage from '../lib/storage';
 import { config } from '../lib/config';
+import { logger } from '../lib/logger';
+import { validateUsername, validateMessageContent } from '../lib/validation';
 
 interface Contact {
   username: string;
@@ -140,7 +142,7 @@ export const useAppStore = create<AppState>((set, get) => ({
         set({ isLoading: false });
       }
     } catch (error) {
-      console.error('Failed to initialize:', error);
+      logger.error('Failed to initialize', error);
       set({ isLoading: false, error: 'Failed to initialize application' });
     }
   },
@@ -436,7 +438,7 @@ export const useAppStore = create<AppState>((set, get) => ({
 
           resolve({ success: true });
         } catch (error) {
-          console.error('Failed to process key bundle:', error);
+          logger.error('Failed to process key bundle', error);
           resolve({ success: false, error: 'Failed to establish secure connection' });
         }
       };
@@ -579,7 +581,7 @@ export const useAppStore = create<AppState>((set, get) => ({
         return { success: true, username: payload.username };
       }
     } catch (error) {
-      console.error('Failed to verify Ultra payload:', error);
+      logger.error('Failed to verify Ultra payload', error);
       return { success: false, error: 'Invalid verification data' };
     }
   },
@@ -621,13 +623,13 @@ function setupSocketListeners(
           socket.emit('addContact', msg.senderId);
         }
       } catch (error) {
-        console.error('Failed to process key exchange:', error);
+        logger.error('Failed to process key exchange', error);
       }
       return;
     }
 
     if (!contact || !contact.sharedSecret) {
-      console.error('Received message from unknown contact or no shared secret');
+      logger.warn('Received message from unknown contact or no shared secret', { senderId: msg.senderId });
       return;
     }
 
@@ -648,7 +650,7 @@ function setupSocketListeners(
       await storage.saveMessage(message);
       set({ messages: [...messages, message] });
     } catch (error) {
-      console.error('Failed to decrypt message:', error);
+      logger.error('Failed to decrypt message', error);
     }
   });
 

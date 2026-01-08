@@ -5,6 +5,7 @@
 
 import { Device, Call } from '@twilio/voice-sdk';
 import { TELEPHONY_API } from './config';
+import { logger } from './logger';
 
 const API_BASE = TELEPHONY_API;
 
@@ -54,7 +55,7 @@ export async function getTelephonyStatus(): Promise<TelephonyStatus> {
     const data = await response.json();
     return data;
   } catch (error) {
-    console.error('Failed to get telephony status:', error);
+    logger.error('Failed to get telephony status', error);
     return { enabled: false, phoneNumber: null };
   }
 }
@@ -66,7 +67,7 @@ export async function getCredits(username: string): Promise<number> {
     const data = await response.json();
     return data.credits || 0;
   } catch (error) {
-    console.error('Failed to get credits:', error);
+    logger.error('Failed to get credits', error);
     return 0;
   }
 }
@@ -85,7 +86,7 @@ export async function addCredits(
     const data = await response.json();
     return data.success;
   } catch (error) {
-    console.error('Failed to add credits:', error);
+    logger.error('Failed to add credits', error);
     return false;
   }
 }
@@ -105,7 +106,7 @@ export async function initVoiceDevice(
     const data = await response.json();
 
     if (!data.token) {
-      console.error('Failed to get voice token');
+      logger.error('Failed to get voice token');
       return null;
     }
 
@@ -114,17 +115,17 @@ export async function initVoiceDevice(
     });
 
     twilioDevice.on('registered', () => {
-      console.log('Twilio Device registered');
+      logger.info('Twilio Device registered');
       onStateChange?.('registered');
     });
 
     twilioDevice.on('error', (error) => {
-      console.error('Twilio Device error:', error);
+      logger.error('Twilio Device error', error);
       onStateChange?.('error');
     });
 
     twilioDevice.on('incoming', (call) => {
-      console.log('Incoming call from:', call.parameters.From);
+      logger.info('Incoming call', { from: call.parameters.From });
       currentCall = call;
       onStateChange?.('incoming');
     });
@@ -133,7 +134,7 @@ export async function initVoiceDevice(
 
     return twilioDevice;
   } catch (error) {
-    console.error('Failed to initialize voice device:', error);
+    logger.error('Failed to initialize voice device', error);
     return null;
   }
 }
@@ -144,7 +145,7 @@ export async function makeCall(
   onCallStateChange?: (state: string, call?: Call) => void
 ): Promise<Call | null> {
   if (!twilioDevice) {
-    console.error('Voice device not initialized');
+    logger.error('Voice device not initialized');
     return null;
   }
 
@@ -156,36 +157,36 @@ export async function makeCall(
     currentCall = call;
 
     call.on('accept', () => {
-      console.log('Call accepted');
+      logger.info('Call accepted');
       onCallStateChange?.('connected', call);
     });
 
     call.on('disconnect', () => {
-      console.log('Call disconnected');
+      logger.info('Call disconnected');
       currentCall = null;
       onCallStateChange?.('disconnected');
     });
 
     call.on('cancel', () => {
-      console.log('Call cancelled');
+      logger.info('Call cancelled');
       currentCall = null;
       onCallStateChange?.('cancelled');
     });
 
     call.on('reject', () => {
-      console.log('Call rejected');
+      logger.info('Call rejected');
       currentCall = null;
       onCallStateChange?.('rejected');
     });
 
     call.on('error', (error) => {
-      console.error('Call error:', error);
+      logger.error('Call error', error);
       currentCall = null;
       onCallStateChange?.('error');
     });
 
     call.on('ringing', () => {
-      console.log('Call ringing');
+      logger.info('Call ringing');
       onCallStateChange?.('ringing', call);
     });
 
@@ -193,7 +194,7 @@ export async function makeCall(
 
     return call;
   } catch (error) {
-    console.error('Failed to make call:', error);
+    logger.error('Failed to make call', error);
     return null;
   }
 }
@@ -263,7 +264,7 @@ export async function sendSms(
     });
     return await response.json();
   } catch (error) {
-    console.error('Failed to send SMS:', error);
+    logger.error('Failed to send SMS', error);
     return {
       success: false,
       error: error instanceof Error ? error.message : 'Failed to send SMS',
@@ -278,7 +279,7 @@ export async function getCallHistory(username: string): Promise<CallLog[]> {
     const data = await response.json();
     return data.calls || [];
   } catch (error) {
-    console.error('Failed to get call history:', error);
+    logger.error('Failed to get call history', error);
     return [];
   }
 }
@@ -290,7 +291,7 @@ export async function getSmsHistory(username: string): Promise<SmsLog[]> {
     const data = await response.json();
     return data.messages || [];
   } catch (error) {
-    console.error('Failed to get SMS history:', error);
+    logger.error('Failed to get SMS history', error);
     return [];
   }
 }

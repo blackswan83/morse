@@ -7,6 +7,7 @@ import {
   storeHardwareKey,
   removeHardwareKey,
 } from '../lib/hardwareKey';
+import { logger } from '../lib/logger';
 
 interface HardwareKey {
   id: string;
@@ -46,7 +47,7 @@ export function HardwareKeyManager() {
 
       setKeys(allKeys);
     } catch (err) {
-      console.error('Failed to fetch hardware keys:', err);
+      logger.error('Failed to fetch hardware keys', err);
     }
   };
 

@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import QRCode from 'qrcode';
 import { Html5Qrcode } from 'html5-qrcode';
 import { useAppStore } from '../store';
+import { logger } from '../lib/logger';
 
 interface UltraVerifyModalProps {
   onClose: () => void;
@@ -70,7 +71,7 @@ export function UltraVerifyModal({ onClose }: UltraVerifyModalProps) {
           // Ignore errors during scanning
         }
       ).catch((err) => {
-        console.error('Failed to start scanner:', err);
+        logger.error('Failed to start scanner', err);
         setErrorMessage('Failed to access camera. Please ensure camera permissions are granted.');
         setMode('error');
       });

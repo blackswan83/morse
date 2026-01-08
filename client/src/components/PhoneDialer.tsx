@@ -7,6 +7,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { Call } from '@twilio/voice-sdk';
 import { useAppStore } from '../store';
 import * as telephony from '../lib/telephony';
+import { logger } from '../lib/logger';
 
 interface PhoneDialerProps {
   onClose: () => void;
@@ -39,7 +40,7 @@ export default function PhoneDialer({ onClose }: PhoneDialerProps) {
         setCredits(userCredits);
 
         await telephony.initVoiceDevice(username, (state) => {
-          console.log('Device state:', state);
+          logger.info('Device state changed', { state });
         });
 
         const history = await telephony.getCallHistory(username);
