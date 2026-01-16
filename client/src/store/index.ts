@@ -364,6 +364,7 @@ export const useAppStore = create<AppState>((set, get) => ({
         signedPreKey: string;
         signedPreKeySignature: string;
         oneTimePreKey?: string;
+        isOnline?: boolean;
       }) => {
         if (bundle.username !== username) return;
 
@@ -400,7 +401,7 @@ export const useAppStore = create<AppState>((set, get) => ({
             publicKey: bundle.identityKey,
             sharedSecret,
             verified: false,
-            online: false,
+            online: bundle.isOnline || false,
             addedAt: Date.now(),
           };
 

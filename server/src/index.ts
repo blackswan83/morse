@@ -963,6 +963,7 @@ io.on('connection', (socket) => {
       signedPreKey: bundle.signedPreKey,
       signedPreKeySignature: bundle.signedPreKeySignature,
       oneTimePreKey: otpResult?.prekey || null,
+      isOnline: onlineUsers.has(username),
     });
   });
 
