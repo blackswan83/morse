@@ -612,16 +612,67 @@ function setupSocketListeners(
     const contact = contacts.get(msg.senderId);
 
     if (msg.type === 'key_exchange' && msg.ephemeralKey) {
-      // Handle incoming key exchange
+      // Handle incoming key exchange - derive shared secret as the recipient
       try {
-        // Validate the ephemeral key format
-        crypto.fromBase64(msg.ephemeralKey);
+        const theirEphemeralKey = crypto.fromBase64(msg.ephemeralKey);
 
-        // We need to get their identity key from the server or the message
-        // For now, request their key bundle if we don't have them as a contact
-        if (!contact) {
-          socket.emit('addContact', msg.senderId);
+        // If we already have this contact with a shared secret, skip
+        if (contact && contact.sharedSecret) {
+          return;
         }
+
+        // We need to get their identity key to derive the shared secret
+        // Request their key bundle and derive secret as recipient
+        const handleSenderBundle = async (bundle: {
+          username: string;
+          identityKey: string;
+          isOnline?: boolean;
+        }) => {
+          if (bundle.username !== msg.senderId) return;
+          socket.off('keyBundle', handleSenderBundle);
+
+          try {
+            const theirIdentityKey = crypto.fromBase64(bundle.identityKey);
+
+            // Derive shared secret as the RECIPIENT of the key exchange
+            const sharedSecret = crypto.deriveSharedSecretRecipient(
+              keyBundle.identityKeyPair.privateKey,
+              keyBundle.signedPreKeyPair.privateKey,
+              undefined, // one-time prekey (we don't track which was used)
+              theirIdentityKey,
+              theirEphemeralKey
+            );
+
+            // Create/update contact with the shared secret
+            const newContact: Contact = {
+              username: msg.senderId,
+              publicKey: bundle.identityKey,
+              sharedSecret,
+              verified: false,
+              online: bundle.isOnline || false,
+              addedAt: Date.now(),
+            };
+
+            await storage.saveContact({
+              username: newContact.username,
+              publicKey: newContact.publicKey,
+              sharedSecret: crypto.toBase64(sharedSecret),
+              verified: false,
+              addedAt: newContact.addedAt,
+            });
+
+            const newContacts = new Map(get().contacts);
+            newContacts.set(msg.senderId, newContact);
+            set({ contacts: newContacts });
+
+            logger.info('Key exchange completed', { contact: msg.senderId });
+          } catch (err) {
+            logger.error('Failed to derive shared secret from key exchange', err);
+          }
+        };
+
+        socket.on('keyBundle', handleSenderBundle);
+        socket.emit('getKeyBundle', msg.senderId);
       } catch (error) {
         logger.error('Failed to process key exchange', error);
       }
