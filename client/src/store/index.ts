@@ -4,7 +4,6 @@ import * as crypto from '../lib/crypto';
 import * as storage from '../lib/storage';
 import { config } from '../lib/config';
 import { logger } from '../lib/logger';
-import { validateUsername, validateMessageContent } from '../lib/validation';
 
 interface Contact {
   username: string;
