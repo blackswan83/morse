@@ -386,13 +386,14 @@ export const useAppStore = create<AppState>((set, get) => ({
           // Generate ephemeral key for key exchange
           const ephemeralKeyPair = crypto.generateEphemeralKeyPair();
 
-          // Derive shared secret
+          // Derive shared secret (don't use one-time prekey to ensure recipient can derive same secret)
+          // The recipient doesn't know which one-time prekey was used, so we skip it
           const sharedSecret = crypto.deriveSharedSecret(
             keyBundle.identityKeyPair.privateKey,
             ephemeralKeyPair.privateKey,
             identityKeyBytes,
             signedPreKeyBytes,
-            bundle.oneTimePreKey ? crypto.fromBase64(bundle.oneTimePreKey) : undefined
+            undefined // Skip one-time prekey for now - recipient can't know which was used
           );
 
           // Create contact
