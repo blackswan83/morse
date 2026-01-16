@@ -18,5 +18,9 @@
   "devDependencies": {
     "concurrently": "^8.2.2",
     "typescript": "^5.3.3"
+  },
+  "dependencies": {
+    "libsodium": "^0.8.0",
+    "libsodium-wrappers": "^0.8.0"
   }
 }
