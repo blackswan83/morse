@@ -2,7 +2,7 @@
 //  OnboardingView.swift
 //  LocationSpoofer
 //
-//  First-launch tutorial that guides users through setup
+//  First-launch tutorial that guides users through setup with automatic installation
 //
 
 import SwiftUI
@@ -11,11 +11,12 @@ struct OnboardingView: View {
     @Binding var isPresented: Bool
     @ObservedObject var deviceManager: DeviceManager
     @ObservedObject var tunnelManager: TunnelManager
+    @StateObject private var setupManager = AutoSetupManager()
 
     @State private var currentStep = 0
     @AppStorage("hasCompletedOnboarding") private var hasCompletedOnboarding = false
 
-    private let totalSteps = 5
+    private let totalSteps = 6
 
     var body: some View {
         VStack(spacing: 0) {
@@ -52,17 +53,20 @@ struct OnboardingView: View {
                 WelcomeStep()
                     .tag(0)
 
-                RequirementsStep()
+                AutoSetupStep(setupManager: setupManager)
                     .tag(1)
 
                 ConnectStep(deviceManager: deviceManager)
                     .tag(2)
 
-                DeveloperModeStep(deviceManager: deviceManager)
+                DeveloperModeStep(deviceManager: deviceManager, setupManager: setupManager)
                     .tag(3)
 
                 TunnelStep(tunnelManager: tunnelManager, deviceManager: deviceManager)
                     .tag(4)
+
+                ReadyStep(deviceManager: deviceManager, tunnelManager: tunnelManager)
+                    .tag(5)
             }
             .tabViewStyle(.automatic)
 
@@ -108,16 +112,16 @@ struct OnboardingView: View {
                         }
                     }
                     .buttonStyle(.borderedProminent)
-                    .disabled(!isSetupComplete)
                 }
             }
             .padding()
         }
-        .frame(width: 600, height: 500)
-    }
-
-    private var isSetupComplete: Bool {
-        deviceManager.deviceState.isReady && tunnelManager.isRunning
+        .frame(width: 650, height: 550)
+        .onAppear {
+            Task {
+                await setupManager.checkAllDependencies()
+            }
+        }
     }
 
     private func completeOnboarding() {
@@ -148,6 +152,7 @@ struct WelcomeStep: View {
                 FeatureRow(icon: "map", text: "Click anywhere on the map to set location")
                 FeatureRow(icon: "point.topleft.down.to.point.bottomright.curvepath", text: "Simulate movement along routes")
                 FeatureRow(icon: "star", text: "Quick access to preset cities")
+                FeatureRow(icon: "wand.and.stars", text: "Automatic setup - we'll install everything for you!")
             }
             .padding(.horizontal, 60)
 
@@ -172,45 +177,112 @@ struct FeatureRow: View {
     }
 }
 
-// MARK: - Step 1: Requirements
-struct RequirementsStep: View {
+// MARK: - Step 1: Auto Setup (Dependencies)
+struct AutoSetupStep: View {
+    @ObservedObject var setupManager: AutoSetupManager
+
+    var allInstalled: Bool {
+        setupManager.pythonInstalled && setupManager.pymobiledeviceInstalled
+    }
+
     var body: some View {
-        VStack(spacing: 24) {
+        VStack(spacing: 20) {
             Spacer()
 
-            Image(systemName: "checklist")
+            Image(systemName: allInstalled ? "checkmark.circle.fill" : "shippingbox.fill")
                 .font(.system(size: 60))
-                .foregroundColor(.orange)
+                .foregroundColor(allInstalled ? .green : .blue)
 
-            Text("What You'll Need")
+            Text(allInstalled ? "Dependencies Installed" : "Install Dependencies")
                 .font(.title.bold())
 
-            VStack(alignment: .leading, spacing: 16) {
-                RequirementItem(
-                    icon: "iphone",
-                    title: "iPhone with iOS 16+",
-                    description: "Older iOS versions may work but aren't fully supported"
+            Text(allInstalled
+                 ? "All required software is already installed!"
+                 : "We'll automatically install the required software.")
+                .multilineTextAlignment(.center)
+                .foregroundColor(.secondary)
+                .padding(.horizontal, 40)
+
+            // Status cards
+            VStack(spacing: 12) {
+                DependencyRow(
+                    name: "Homebrew",
+                    description: "Package manager for macOS",
+                    isInstalled: setupManager.homebrewInstalled
                 )
 
-                RequirementItem(
-                    icon: "cable.connector",
-                    title: "USB Cable",
-                    description: "Lightning or USB-C cable to connect iPhone to Mac"
+                DependencyRow(
+                    name: "Python 3",
+                    description: "Required for pymobiledevice3",
+                    isInstalled: setupManager.pythonInstalled
                 )
 
-                RequirementItem(
-                    icon: "hammer",
-                    title: "Developer Mode (iOS 16+)",
-                    description: "A setting you'll enable on your iPhone"
+                DependencyRow(
+                    name: "pymobiledevice3",
+                    description: "iPhone communication library",
+                    isInstalled: setupManager.pymobiledeviceInstalled
                 )
 
-                RequirementItem(
-                    icon: "terminal",
-                    title: "Python & pymobiledevice3",
-                    description: "Already installed? Great! If not, we'll help you set it up."
+                DependencyRow(
+                    name: "libimobiledevice",
+                    description: "USB device detection",
+                    isInstalled: setupManager.libimobiledeviceInstalled
                 )
             }
             .padding(.horizontal, 40)
+
+            if !allInstalled {
+                if setupManager.isSettingUp {
+                    VStack(spacing: 8) {
+                        ProgressView(value: setupManager.progress)
+                            .padding(.horizontal, 60)
+
+                        Text(setupManager.currentStep)
+                            .font(.caption)
+                            .foregroundColor(.secondary)
+                    }
+                } else {
+                    Button {
+                        Task {
+                            await setupManager.installAllDependencies()
+                        }
+                    } label: {
+                        Label("Install All Dependencies", systemImage: "arrow.down.circle.fill")
+                    }
+                    .buttonStyle(.borderedProminent)
+                    .controlSize(.large)
+                }
+
+                if setupManager.hasError {
+                    Text(setupManager.errorMessage)
+                        .font(.caption)
+                        .foregroundColor(.red)
+                        .padding()
+                        .background(Color.red.opacity(0.1))
+                        .cornerRadius(8)
+                }
+            }
+
+            // Logs (collapsible)
+            if !setupManager.logs.isEmpty {
+                DisclosureGroup("Installation Log") {
+                    ScrollView {
+                        VStack(alignment: .leading, spacing: 2) {
+                            ForEach(setupManager.logs.indices, id: \.self) { index in
+                                Text(setupManager.logs[index])
+                                    .font(.system(.caption, design: .monospaced))
+                                    .foregroundColor(.secondary)
+                            }
+                        }
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                    }
+                    .frame(height: 100)
+                    .padding(8)
+                    .background(Color.secondary.opacity(0.1))
+                    .cornerRadius(6)
+                }
+                .padding(.horizontal, 40)
+            }
 
             Spacer()
         }
@@ -218,26 +290,33 @@ struct RequirementsStep: View {
     }
 }
 
-struct RequirementItem: View {
-    let icon: String
-    let title: String
+struct DependencyRow: View {
+    let name: String
     let description: String
+    let isInstalled: Bool
 
     var body: some View {
-        HStack(alignment: .top, spacing: 12) {
-            Image(systemName: icon)
-                .font(.title2)
-                .foregroundColor(.accentColor)
-                .frame(width: 32)
+        HStack {
+            Image(systemName: isInstalled ? "checkmark.circle.fill" : "circle")
+                .foregroundColor(isInstalled ? .green : .secondary)
 
             VStack(alignment: .leading, spacing: 2) {
-                Text(title)
+                Text(name)
                     .font(.headline)
                 Text(description)
                     .font(.caption)
                     .foregroundColor(.secondary)
             }
+
+            Spacer()
+
+            Text(isInstalled ? "Installed" : "Required")
+                .font(.caption)
+                .foregroundColor(isInstalled ? .green : .orange)
         }
+        .padding()
+        .background(Color(nsColor: .controlBackgroundColor))
+        .cornerRadius(8)
     }
 }
 
@@ -318,7 +397,9 @@ struct ConnectStep: View {
 // MARK: - Step 3: Developer Mode
 struct DeveloperModeStep: View {
     @ObservedObject var deviceManager: DeviceManager
-    @State private var showXcodeHelp = false
+    @ObservedObject var setupManager: AutoSetupManager
+    @State private var showManualInstructions = false
+    @State private var isTriggering = false
 
     var body: some View {
         VStack(spacing: 20) {
@@ -344,52 +425,73 @@ struct DeveloperModeStep: View {
             StatusCard(
                 isComplete: deviceManager.isDeveloperModeEnabled,
                 title: deviceManager.isDeveloperModeEnabled ? "Developer Mode Enabled" : "Developer Mode Required",
-                subtitle: deviceManager.isDeveloperModeEnabled ? "Your iPhone is ready" : "Follow the steps below"
+                subtitle: deviceManager.isDeveloperModeEnabled ? "Your iPhone is ready" : "We can try to enable this automatically"
             )
 
-            // Instructions
-            VStack(alignment: .leading, spacing: 12) {
-                Text("On your iPhone:")
-                    .font(.headline)
-
-                InstructionRow(number: 1, text: "Open Settings")
-                InstructionRow(number: 2, text: "Go to Privacy & Security")
-                InstructionRow(number: 3, text: "Scroll down and tap Developer Mode")
-                InstructionRow(number: 4, text: "Toggle ON and restart when prompted")
-            }
-            .padding(.horizontal, 40)
-
-            // Help for missing Developer Mode option
-            Button {
-                showXcodeHelp.toggle()
-            } label: {
-                Label("Don't see Developer Mode option?", systemImage: "questionmark.circle")
-            }
-            .buttonStyle(.plain)
-            .foregroundColor(.accentColor)
-
-            if showXcodeHelp {
-                VStack(alignment: .leading, spacing: 8) {
-                    Text("If Developer Mode doesn't appear:")
-                        .font(.caption.bold())
-
-                    Text("1. Install Xcode from the App Store (free)")
-                        .font(.caption)
-                    Text("2. Open Xcode and go to Window → Devices")
-                        .font(.caption)
-                    Text("3. Select your iPhone - this registers it")
-                        .font(.caption)
-                    Text("4. Now Developer Mode should appear in Settings")
-                        .font(.caption)
-
-                    Text("\nAlternatively, pymobiledevice3 may enable it automatically when you run certain commands.")
-                        .font(.caption)
-                        .foregroundColor(.secondary)
+            if !deviceManager.isDeveloperModeEnabled {
+                // Auto-trigger button
+                if isTriggering {
+                    ProgressView("Triggering Developer Mode...")
+                } else {
+                    Button {
+                        isTriggering = true
+                        Task {
+                            _ = await setupManager.triggerDeveloperMode()
+                            deviceManager.checkConnection()
+                            isTriggering = false
+                        }
+                    } label: {
+                        Label("Auto-Enable Developer Mode", systemImage: "wand.and.stars")
+                    }
+                    .buttonStyle(.borderedProminent)
+                    .controlSize(.large)
+                    .disabled(!deviceManager.isPaired)
                 }
-                .padding()
-                .background(Color.secondary.opacity(0.1))
-                .cornerRadius(8)
-                .padding(.horizontal, 40)
+
+                Text("This will attempt to trigger Developer Mode on your iPhone.\nYou may need to confirm on your device.")
+                    .font(.caption)
+                    .foregroundColor(.secondary)
+                    .multilineTextAlignment(.center)
+                    .padding(.horizontal, 40)
+
+                Divider()
+                    .padding(.horizontal, 60)
+
+                // Manual instructions toggle
+                Button {
+                    showManualInstructions.toggle()
+                } label: {
+                    Label(
+                        showManualInstructions ? "Hide Manual Instructions" : "Show Manual Instructions",
+                        systemImage: showManualInstructions ? "chevron.up" : "chevron.down"
+                    )
+                }
+                .buttonStyle(.plain)
+                .foregroundColor(.accentColor)
+
+                if showManualInstructions {
+                    VStack(alignment: .leading, spacing: 8) {
+                        Text("On your iPhone:")
+                            .font(.headline)
+
+                        InstructionRow(number: 1, text: "Open Settings")
+                        InstructionRow(number: 2, text: "Go to Privacy & Security")
+                        InstructionRow(number: 3, text: "Scroll down and tap Developer Mode")
+                        InstructionRow(number: 4, text: "Toggle ON and restart when prompted")
+
+                        Divider()
+
+                        Text("Don't see Developer Mode?")
+                            .font(.caption.bold())
+                        Text("Install Xcode (free) and connect your iPhone once via Window → Devices")
+                            .font(.caption)
+                            .foregroundColor(.secondary)
+                    }
+                    .padding()
+                    .background(Color.secondary.opacity(0.1))
+                    .cornerRadius(8)
+                    .padding(.horizontal, 40)
+                }
             }
 
             Button {
@@ -460,7 +562,7 @@ struct TunnelStep: View {
                 HStack {
                     Image(systemName: "checkmark.seal.fill")
                         .foregroundColor(.green)
-                    Text("You're all set! Click \"Finish Setup\" to start spoofing.")
+                    Text("Tunnel is running!")
                         .foregroundColor(.green)
                 }
                 .padding()
@@ -482,6 +584,83 @@ struct TunnelStep: View {
             Spacer()
         }
         .padding()
+    }
+}
+
+// MARK: - Step 5: Ready
+struct ReadyStep: View {
+    @ObservedObject var deviceManager: DeviceManager
+    @ObservedObject var tunnelManager: TunnelManager
+
+    var isReady: Bool {
+        deviceManager.deviceState.isReady && tunnelManager.isRunning
+    }
+
+    var body: some View {
+        VStack(spacing: 24) {
+            Spacer()
+
+            if isReady {
+                Image(systemName: "checkmark.seal.fill")
+                    .font(.system(size: 80))
+                    .foregroundColor(.green)
+
+                Text("You're All Set!")
+                    .font(.title.bold())
+
+                Text("Location Spoofer is ready to use.\nClick anywhere on the map to set your iPhone's location.")
+                    .multilineTextAlignment(.center)
+                    .foregroundColor(.secondary)
+                    .padding(.horizontal, 40)
+
+                VStack(alignment: .leading, spacing: 12) {
+                    FeatureRow(icon: "hand.tap", text: "Click on map to place a pin")
+                    FeatureRow(icon: "location.fill", text: "Click \"Set Location\" to apply")
+                    FeatureRow(icon: "star.fill", text: "Use quick buttons for preset cities")
+                    FeatureRow(icon: "questionmark.circle", text: "Click ? anytime to reopen this guide")
+                }
+                .padding(.horizontal, 60)
+            } else {
+                Image(systemName: "exclamationmark.triangle.fill")
+                    .font(.system(size: 80))
+                    .foregroundColor(.orange)
+
+                Text("Almost There!")
+                    .font(.title.bold())
+
+                Text("Please complete the previous steps before finishing setup.")
+                    .multilineTextAlignment(.center)
+                    .foregroundColor(.secondary)
+
+                VStack(alignment: .leading, spacing: 8) {
+                    ChecklistRow(text: "Dependencies installed", isComplete: true)
+                    ChecklistRow(text: "iPhone connected", isComplete: deviceManager.isConnected)
+                    ChecklistRow(text: "iPhone trusted", isComplete: deviceManager.isPaired)
+                    ChecklistRow(text: "Developer Mode enabled", isComplete: deviceManager.isDeveloperModeEnabled)
+                    ChecklistRow(text: "Tunnel running", isComplete: tunnelManager.isRunning)
+                }
+                .padding()
+                .background(Color.secondary.opacity(0.1))
+                .cornerRadius(8)
+            }
+
+            Spacer()
+        }
+        .padding()
+    }
+}
+
+struct ChecklistRow: View {
+    let text: String
+    let isComplete: Bool
+
+    var body: some View {
+        HStack {
+            Image(systemName: isComplete ? "checkmark.circle.fill" : "circle")
+                .foregroundColor(isComplete ? .green : .secondary)
+            Text(text)
+                .foregroundColor(isComplete ? .primary : .secondary)
+        }
     }
 }
 
