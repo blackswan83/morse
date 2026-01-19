@@ -2,7 +2,7 @@
 //  OnboardingView.swift
 //  LocationSpoofer
 //
-//  First-launch tutorial that guides users through setup with automatic installation
+//  Polished first-launch tutorial with illustrations and mock UI
 //
 
 import SwiftUI
@@ -17,6 +17,7 @@ struct OnboardingView: View {
     @AppStorage("hasCompletedOnboarding") private var hasCompletedOnboarding = false
 
     private let totalSteps = 6
+    private let stepTitles = ["Welcome", "Install", "Connect", "Developer", "Tunnel", "Ready"]
 
     var body: some View {
         VStack(spacing: 0) {
@@ -35,37 +36,34 @@ struct OnboardingView: View {
             }
             .padding()
 
-            Divider()
-
             // Progress indicator
-            HStack(spacing: 8) {
-                ForEach(0..<totalSteps, id: \.self) { step in
-                    Capsule()
-                        .fill(step <= currentStep ? Color.accentColor : Color.secondary.opacity(0.3))
-                        .frame(height: 4)
-                }
-            }
-            .padding(.horizontal)
-            .padding(.top)
+            StepProgressIndicator(
+                currentStep: currentStep,
+                totalSteps: totalSteps,
+                stepTitles: stepTitles
+            )
+            .padding(.bottom, 8)
+
+            Divider()
 
             // Content
             TabView(selection: $currentStep) {
-                WelcomeStep()
+                WelcomeStepPolished()
                     .tag(0)
 
-                AutoSetupStep(setupManager: setupManager)
+                AutoSetupStepPolished(setupManager: setupManager)
                     .tag(1)
 
-                ConnectStep(deviceManager: deviceManager)
+                ConnectStepPolished(deviceManager: deviceManager)
                     .tag(2)
 
-                DeveloperModeStep(deviceManager: deviceManager, setupManager: setupManager)
+                DeveloperModeStepPolished(deviceManager: deviceManager, setupManager: setupManager)
                     .tag(3)
 
-                TunnelStep(tunnelManager: tunnelManager, deviceManager: deviceManager)
+                TunnelStepPolished(tunnelManager: tunnelManager, deviceManager: deviceManager)
                     .tag(4)
 
-                ReadyStep(deviceManager: deviceManager, tunnelManager: tunnelManager)
+                ReadyStepPolished(deviceManager: deviceManager, tunnelManager: tunnelManager)
                     .tag(5)
             }
             .tabViewStyle(.automatic)
@@ -76,11 +74,11 @@ struct OnboardingView: View {
             HStack {
                 if currentStep > 0 {
                     Button {
-                        withAnimation {
+                        withAnimation(.spring(response: 0.4)) {
                             currentStep -= 1
                         }
                     } label: {
-                        HStack {
+                        HStack(spacing: 4) {
                             Image(systemName: "chevron.left")
                             Text("Back")
                         }
@@ -92,31 +90,33 @@ struct OnboardingView: View {
 
                 if currentStep < totalSteps - 1 {
                     Button {
-                        withAnimation {
+                        withAnimation(.spring(response: 0.4)) {
                             currentStep += 1
                         }
                     } label: {
-                        HStack {
-                            Text(currentStep == 0 ? "Get Started" : "Next")
+                        HStack(spacing: 4) {
+                            Text(currentStep == 0 ? "Get Started" : "Continue")
                             Image(systemName: "chevron.right")
                         }
                     }
                     .buttonStyle(.borderedProminent)
+                    .controlSize(.large)
                 } else {
                     Button {
                         completeOnboarding()
                     } label: {
-                        HStack {
-                            Text("Finish Setup")
-                            Image(systemName: "checkmark")
+                        HStack(spacing: 4) {
+                            Image(systemName: "checkmark.circle.fill")
+                            Text("Start Using App")
                         }
                     }
                     .buttonStyle(.borderedProminent)
+                    .controlSize(.large)
                 }
             }
             .padding()
         }
-        .frame(width: 650, height: 550)
+        .frame(width: 700, height: 600)
         .onAppear {
             Task {
                 await setupManager.checkAllDependencies()
@@ -130,55 +130,123 @@ struct OnboardingView: View {
     }
 }
 
-// MARK: - Step 0: Welcome
-struct WelcomeStep: View {
+// MARK: - Step 0: Welcome (Polished)
+struct WelcomeStepPolished: View {
+    @State private var isAnimating = false
+
     var body: some View {
-        VStack(spacing: 24) {
-            Spacer()
+        HStack(spacing: 40) {
+            // Left side - Illustration
+            ZStack {
+                // Animated background
+                Circle()
+                    .fill(Color.accentColor.opacity(0.1))
+                    .frame(width: 200, height: 200)
+                    .scaleEffect(isAnimating ? 1.1 : 1)
+                    .animation(.easeInOut(duration: 2).repeatForever(autoreverses: true), value: isAnimating)
 
-            Image(systemName: "location.circle.fill")
-                .font(.system(size: 80))
-                .foregroundColor(.accentColor)
+                // Location pin with pulse
+                ZStack {
+                    Circle()
+                        .stroke(Color.accentColor.opacity(0.3), lineWidth: 2)
+                        .frame(width: 100, height: 100)
+                        .scaleEffect(isAnimating ? 1.5 : 1)
+                        .opacity(isAnimating ? 0 : 1)
+                        .animation(.easeOut(duration: 1.5).repeatForever(autoreverses: false), value: isAnimating)
 
-            Text("Welcome to Location Spoofer")
-                .font(.title.bold())
-
-            Text("This app lets you simulate GPS locations on your iPhone.\nPerfect for privacy when sharing location.")
-                .multilineTextAlignment(.center)
-                .foregroundColor(.secondary)
-                .padding(.horizontal, 40)
-
-            VStack(alignment: .leading, spacing: 12) {
-                FeatureRow(icon: "map", text: "Click anywhere on the map to set location")
-                FeatureRow(icon: "point.topleft.down.to.point.bottomright.curvepath", text: "Simulate movement along routes")
-                FeatureRow(icon: "star", text: "Quick access to preset cities")
-                FeatureRow(icon: "wand.and.stars", text: "Automatic setup - we'll install everything for you!")
+                    Image(systemName: "location.circle.fill")
+                        .font(.system(size: 80))
+                        .foregroundStyle(
+                            LinearGradient(
+                                colors: [.blue, .purple],
+                                startPoint: .topLeading,
+                                endPoint: .bottomTrailing
+                            )
+                        )
+                }
             }
-            .padding(.horizontal, 60)
+            .frame(width: 250)
 
-            Spacer()
+            // Right side - Content
+            VStack(alignment: .leading, spacing: 20) {
+                Text("Welcome to\nLocation Spoofer")
+                    .font(.largeTitle.bold())
+                    .foregroundStyle(
+                        LinearGradient(
+                            colors: [.primary, .primary.opacity(0.7)],
+                            startPoint: .leading,
+                            endPoint: .trailing
+                        )
+                    )
+
+                Text("Simulate GPS locations on your iPhone with ease. Perfect for privacy when sharing your location.")
+                    .font(.body)
+                    .foregroundColor(.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
+
+                VStack(alignment: .leading, spacing: 16) {
+                    FeatureRowPolished(
+                        icon: "map.fill",
+                        color: .blue,
+                        title: "Interactive Map",
+                        description: "Click anywhere to set your location"
+                    )
+
+                    FeatureRowPolished(
+                        icon: "point.topleft.down.to.point.bottomright.curvepath.fill",
+                        color: .green,
+                        title: "Route Simulation",
+                        description: "Simulate movement along custom paths"
+                    )
+
+                    FeatureRowPolished(
+                        icon: "wand.and.stars",
+                        color: .purple,
+                        title: "Automatic Setup",
+                        description: "We'll install everything for you"
+                    )
+                }
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
         }
-        .padding()
+        .padding(40)
+        .onAppear {
+            isAnimating = true
+        }
     }
 }
 
-struct FeatureRow: View {
+struct FeatureRowPolished: View {
     let icon: String
-    let text: String
+    let color: Color
+    let title: String
+    let description: String
 
     var body: some View {
         HStack(spacing: 12) {
-            Image(systemName: icon)
-                .foregroundColor(.accentColor)
-                .frame(width: 24)
-            Text(text)
-                .font(.callout)
+            ZStack {
+                RoundedRectangle(cornerRadius: 8)
+                    .fill(color.opacity(0.15))
+                    .frame(width: 36, height: 36)
+
+                Image(systemName: icon)
+                    .font(.system(size: 16))
+                    .foregroundColor(color)
+            }
+
+            VStack(alignment: .leading, spacing: 2) {
+                Text(title)
+                    .font(.subheadline.weight(.semibold))
+                Text(description)
+                    .font(.caption)
+                    .foregroundColor(.secondary)
+            }
         }
     }
 }
 
-// MARK: - Step 1: Auto Setup (Dependencies)
-struct AutoSetupStep: View {
+// MARK: - Step 1: Auto Setup (Polished)
+struct AutoSetupStepPolished: View {
     @ObservedObject var setupManager: AutoSetupManager
 
     var allInstalled: Bool {
@@ -186,123 +254,121 @@ struct AutoSetupStep: View {
     }
 
     var body: some View {
-        VStack(spacing: 20) {
-            Spacer()
+        HStack(spacing: 40) {
+            // Left - Status
+            VStack(spacing: 20) {
+                ZStack {
+                    Circle()
+                        .fill(allInstalled ? Color.green.opacity(0.15) : Color.blue.opacity(0.15))
+                        .frame(width: 120, height: 120)
 
-            Image(systemName: allInstalled ? "checkmark.circle.fill" : "shippingbox.fill")
-                .font(.system(size: 60))
-                .foregroundColor(allInstalled ? .green : .blue)
+                    Image(systemName: allInstalled ? "checkmark.seal.fill" : "shippingbox.fill")
+                        .font(.system(size: 50))
+                        .foregroundColor(allInstalled ? .green : .blue)
+                }
 
-            Text(allInstalled ? "Dependencies Installed" : "Install Dependencies")
-                .font(.title.bold())
+                Text(allInstalled ? "All Set!" : "Install Required Tools")
+                    .font(.title2.bold())
 
-            Text(allInstalled
-                 ? "All required software is already installed!"
-                 : "We'll automatically install the required software.")
-                .multilineTextAlignment(.center)
-                .foregroundColor(.secondary)
-                .padding(.horizontal, 40)
+                if !allInstalled {
+                    if setupManager.isSettingUp {
+                        VStack(spacing: 8) {
+                            ProgressView(value: setupManager.progress)
+                                .frame(width: 200)
 
-            // Status cards
-            VStack(spacing: 12) {
-                DependencyRow(
+                            Text(setupManager.currentStep)
+                                .font(.caption)
+                                .foregroundColor(.secondary)
+                        }
+                    } else {
+                        Button {
+                            Task {
+                                await setupManager.installAllDependencies()
+                            }
+                        } label: {
+                            Label("Install All", systemImage: "arrow.down.circle.fill")
+                        }
+                        .buttonStyle(.borderedProminent)
+                        .controlSize(.large)
+                    }
+                }
+            }
+            .frame(width: 280)
+
+            // Right - Dependency list
+            VStack(alignment: .leading, spacing: 16) {
+                Text("Required Components")
+                    .font(.headline)
+                    .foregroundColor(.secondary)
+
+                DependencyCardPolished(
                     name: "Homebrew",
-                    description: "Package manager for macOS",
+                    description: "macOS package manager",
+                    icon: "cup.and.saucer.fill",
                     isInstalled: setupManager.homebrewInstalled
                 )
 
-                DependencyRow(
+                DependencyCardPolished(
                     name: "Python 3",
-                    description: "Required for pymobiledevice3",
+                    description: "Programming language runtime",
+                    icon: "chevron.left.forwardslash.chevron.right",
                     isInstalled: setupManager.pythonInstalled
                 )
 
-                DependencyRow(
+                DependencyCardPolished(
                     name: "pymobiledevice3",
                     description: "iPhone communication library",
+                    icon: "iphone.and.arrow.forward",
                     isInstalled: setupManager.pymobiledeviceInstalled
                 )
 
-                DependencyRow(
+                DependencyCardPolished(
                     name: "libimobiledevice",
                     description: "USB device detection",
+                    icon: "cable.connector",
                     isInstalled: setupManager.libimobiledeviceInstalled
                 )
-            }
-            .padding(.horizontal, 40)
-
-            if !allInstalled {
-                if setupManager.isSettingUp {
-                    VStack(spacing: 8) {
-                        ProgressView(value: setupManager.progress)
-                            .padding(.horizontal, 60)
-
-                        Text(setupManager.currentStep)
-                            .font(.caption)
-                            .foregroundColor(.secondary)
-                    }
-                } else {
-                    Button {
-                        Task {
-                            await setupManager.installAllDependencies()
-                        }
-                    } label: {
-                        Label("Install All Dependencies", systemImage: "arrow.down.circle.fill")
-                    }
-                    .buttonStyle(.borderedProminent)
-                    .controlSize(.large)
-                }
 
                 if setupManager.hasError {
-                    Text(setupManager.errorMessage)
-                        .font(.caption)
-                        .foregroundColor(.red)
-                        .padding()
-                        .background(Color.red.opacity(0.1))
-                        .cornerRadius(8)
-                }
-            }
-
-            // Logs (collapsible)
-            if !setupManager.logs.isEmpty {
-                DisclosureGroup("Installation Log") {
-                    ScrollView {
-                        VStack(alignment: .leading, spacing: 2) {
-                            ForEach(setupManager.logs.indices, id: \.self) { index in
-                                Text(setupManager.logs[index])
-                                    .font(.system(.caption, design: .monospaced))
-                                    .foregroundColor(.secondary)
-                            }
-                        }
-                        .frame(maxWidth: .infinity, alignment: .leading)
+                    HStack {
+                        Image(systemName: "exclamationmark.triangle.fill")
+                            .foregroundColor(.red)
+                        Text(setupManager.errorMessage)
+                            .font(.caption)
+                            .foregroundColor(.red)
                     }
-                    .frame(height: 100)
-                    .padding(8)
-                    .background(Color.secondary.opacity(0.1))
-                    .cornerRadius(6)
+                    .padding()
+                    .background(Color.red.opacity(0.1))
+                    .cornerRadius(8)
                 }
-                .padding(.horizontal, 40)
             }
-
-            Spacer()
+            .frame(maxWidth: .infinity)
         }
-        .padding()
+        .padding(40)
     }
 }
 
-struct DependencyRow: View {
+struct DependencyCardPolished: View {
     let name: String
     let description: String
+    let icon: String
     let isInstalled: Bool
 
     var body: some View {
-        HStack {
-            Image(systemName: isInstalled ? "checkmark.circle.fill" : "circle")
-                .foregroundColor(isInstalled ? .green : .secondary)
+        HStack(spacing: 12) {
+            ZStack {
+                RoundedRectangle(cornerRadius: 8)
+                    .fill(isInstalled ? Color.green.opacity(0.15) : Color.secondary.opacity(0.1))
+                    .frame(width: 40, height: 40)
+
+                Image(systemName: icon)
+                    .font(.system(size: 16))
+                    .foregroundColor(isInstalled ? .green : .secondary)
+            }
 
             VStack(alignment: .leading, spacing: 2) {
                 Text(name)
-                    .font(.headline)
+                    .font(.subheadline.weight(.medium))
                 Text(description)
                     .font(.caption)
                     .foregroundColor(.secondary)
@@ -310,285 +376,356 @@ struct DependencyRow: View {
 
             Spacer()
 
-            Text(isInstalled ? "Installed" : "Required")
-                .font(.caption)
-                .foregroundColor(isInstalled ? .green : .orange)
+            Image(systemName: isInstalled ? "checkmark.circle.fill" : "circle.dashed")
+                .font(.title3)
+                .foregroundColor(isInstalled ? .green : .secondary.opacity(0.5))
         }
-        .padding()
+        .padding(12)
         .background(Color(nsColor: .controlBackgroundColor))
-        .cornerRadius(8)
+        .cornerRadius(10)
     }
 }
 
-// MARK: - Step 2: Connect iPhone
-struct ConnectStep: View {
+// MARK: - Step 2: Connect iPhone (Polished)
+struct ConnectStepPolished: View {
     @ObservedObject var deviceManager: DeviceManager
 
     var body: some View {
-        VStack(spacing: 24) {
-            Spacer()
+        HStack(spacing: 20) {
+            // Left - Illustration
+            VStack {
+                CableConnectionIllustration(isConnected: deviceManager.isConnected)
+                    .frame(height: 150)
 
-            ZStack {
-                Image(systemName: "iphone")
-                    .font(.system(size: 60))
-                    .foregroundColor(.secondary)
-
-                if deviceManager.isConnected {
-                    Image(systemName: "checkmark.circle.fill")
-                        .font(.system(size: 24))
-                        .foregroundColor(.green)
-                        .offset(x: 30, y: -30)
+                if deviceManager.isConnected && !deviceManager.isPaired {
+                    TrustDialogIllustration()
+                        .scaleEffect(0.8)
+                        .frame(height: 250)
                 }
             }
+            .frame(width: 320)
 
-            Text("Connect Your iPhone")
-                .font(.title.bold())
-
-            // Status
-            StatusCard(
-                isComplete: deviceManager.isConnected,
-                title: deviceManager.isConnected ? "iPhone Connected" : "Waiting for iPhone...",
-                subtitle: deviceManager.deviceInfo ?? "Connect via USB cable"
-            )
-
-            // Instructions
-            VStack(alignment: .leading, spacing: 12) {
-                InstructionRow(number: 1, text: "Connect iPhone to Mac using USB cable")
-
-                InstructionRow(number: 2, text: "If prompted on iPhone, tap \"Trust\"")
-
-                InstructionRow(number: 3, text: "Enter your iPhone passcode to confirm")
-            }
-            .padding(.horizontal, 60)
-
-            if !deviceManager.isPaired && deviceManager.isConnected {
+            // Right - Instructions
+            VStack(alignment: .leading, spacing: 20) {
                 HStack {
-                    Image(systemName: "exclamationmark.triangle.fill")
-                        .foregroundColor(.orange)
-                    Text("Tap \"Trust\" on your iPhone now")
-                        .font(.callout)
-                        .foregroundColor(.orange)
+                    Circle()
+                        .fill(deviceManager.isConnected ? Color.green : Color.orange)
+                        .frame(width: 12, height: 12)
+
+                    Text(deviceManager.isConnected ? "iPhone Detected" : "Waiting for iPhone...")
+                        .font(.title2.bold())
                 }
-                .padding()
-                .background(Color.orange.opacity(0.1))
-                .cornerRadius(8)
-            }
 
-            if deviceManager.isChecking {
-                ProgressView("Checking connection...")
-            }
+                if let info = deviceManager.deviceInfo {
+                    Text(info)
+                        .font(.subheadline)
+                        .foregroundColor(.secondary)
+                }
 
-            Button {
-                deviceManager.checkConnection()
-            } label: {
-                Label("Refresh Status", systemImage: "arrow.clockwise")
-            }
-            .buttonStyle(.bordered)
+                Divider()
 
-            Spacer()
+                VStack(alignment: .leading, spacing: 16) {
+                    StepInstruction(
+                        number: 1,
+                        title: "Connect via USB",
+                        description: "Use a Lightning or USB-C cable",
+                        isComplete: deviceManager.isConnected
+                    )
+
+                    StepInstruction(
+                        number: 2,
+                        title: "Tap \"Trust\" on iPhone",
+                        description: "When the dialog appears, tap Trust",
+                        isComplete: deviceManager.isPaired,
+                        isCurrent: deviceManager.isConnected && !deviceManager.isPaired
+                    )
+
+                    StepInstruction(
+                        number: 3,
+                        title: "Enter Passcode",
+                        description: "Confirm with your iPhone passcode",
+                        isComplete: deviceManager.isPaired
+                    )
+                }
+
+                Spacer()
+
+                Button {
+                    deviceManager.checkConnection()
+                } label: {
+                    Label("Refresh Status", systemImage: "arrow.clockwise")
+                }
+                .buttonStyle(.bordered)
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
         }
-        .padding()
+        .padding(40)
         .onAppear {
             deviceManager.checkConnection()
         }
     }
 }
 
-// MARK: - Step 3: Developer Mode
-struct DeveloperModeStep: View {
-    @ObservedObject var deviceManager: DeviceManager
-    @ObservedObject var setupManager: AutoSetupManager
-    @State private var showManualInstructions = false
-    @State private var isTriggering = false
+struct StepInstruction: View {
+    let number: Int
+    let title: String
+    let description: String
+    var isComplete: Bool = false
+    var isCurrent: Bool = false
 
     var body: some View {
-        VStack(spacing: 20) {
-            Spacer()
-
+        HStack(alignment: .top, spacing: 12) {
             ZStack {
-                Image(systemName: "hammer.fill")
-                    .font(.system(size: 60))
-                    .foregroundColor(.orange)
+                Circle()
+                    .fill(isComplete ? Color.green : (isCurrent ? Color.accentColor : Color.secondary.opacity(0.2)))
+                    .frame(width: 28, height: 28)
 
-                if deviceManager.isDeveloperModeEnabled {
-                    Image(systemName: "checkmark.circle.fill")
-                        .font(.system(size: 24))
-                        .foregroundColor(.green)
-                        .offset(x: 35, y: -30)
+                if isComplete {
+                    Image(systemName: "checkmark")
+                        .font(.caption.bold())
+                        .foregroundColor(.white)
+                } else {
+                    Text("\(number)")
+                        .font(.caption.bold())
+                        .foregroundColor(isCurrent ? .white : .secondary)
                 }
             }
 
-            Text("Enable Developer Mode")
-                .font(.title.bold())
+            VStack(alignment: .leading, spacing: 4) {
+                Text(title)
+                    .font(.subheadline.weight(.semibold))
+                    .foregroundColor(isComplete ? .secondary : .primary)
 
-            // Status
-            StatusCard(
-                isComplete: deviceManager.isDeveloperModeEnabled,
-                title: deviceManager.isDeveloperModeEnabled ? "Developer Mode Enabled" : "Developer Mode Required",
-                subtitle: deviceManager.isDeveloperModeEnabled ? "Your iPhone is ready" : "We can try to enable this automatically"
-            )
-
-            if !deviceManager.isDeveloperModeEnabled {
-                // Auto-trigger button
-                if isTriggering {
-                    ProgressView("Triggering Developer Mode...")
-                } else {
-                    Button {
-                        isTriggering = true
-                        Task {
-                            _ = await setupManager.triggerDeveloperMode()
-                            deviceManager.checkConnection()
-                            isTriggering = false
-                        }
-                    } label: {
-                        Label("Auto-Enable Developer Mode", systemImage: "wand.and.stars")
-                    }
-                    .buttonStyle(.borderedProminent)
-                    .controlSize(.large)
-                    .disabled(!deviceManager.isPaired)
-                }
-
-                Text("This will attempt to trigger Developer Mode on your iPhone.\nYou may need to confirm on your device.")
+                Text(description)
                     .font(.caption)
                     .foregroundColor(.secondary)
-                    .multilineTextAlignment(.center)
-                    .padding(.horizontal, 40)
-
-                Divider()
-                    .padding(.horizontal, 60)
-
-                // Manual instructions toggle
-                Button {
-                    showManualInstructions.toggle()
-                } label: {
-                    Label(
-                        showManualInstructions ? "Hide Manual Instructions" : "Show Manual Instructions",
-                        systemImage: showManualInstructions ? "chevron.up" : "chevron.down"
-                    )
-                }
-                .buttonStyle(.plain)
-                .foregroundColor(.accentColor)
-
-                if showManualInstructions {
-                    VStack(alignment: .leading, spacing: 8) {
-                        Text("On your iPhone:")
-                            .font(.headline)
-
-                        InstructionRow(number: 1, text: "Open Settings")
-                        InstructionRow(number: 2, text: "Go to Privacy & Security")
-                        InstructionRow(number: 3, text: "Scroll down and tap Developer Mode")
-                        InstructionRow(number: 4, text: "Toggle ON and restart when prompted")
-
-                        Divider()
-
-                        Text("Don't see Developer Mode?")
-                            .font(.caption.bold())
-                        Text("Install Xcode (free) and connect your iPhone once via Window → Devices")
-                            .font(.caption)
-                            .foregroundColor(.secondary)
-                    }
-                    .padding()
-                    .background(Color.secondary.opacity(0.1))
-                    .cornerRadius(8)
-                    .padding(.horizontal, 40)
-                }
             }
-
-            Button {
-                deviceManager.checkConnection()
-            } label: {
-                Label("Check Status", systemImage: "arrow.clockwise")
-            }
-            .buttonStyle(.bordered)
-
-            Spacer()
         }
-        .padding()
+        .opacity(isComplete ? 0.6 : 1)
     }
 }
 
-// MARK: - Step 4: Start Tunnel
-struct TunnelStep: View {
+// MARK: - Step 3: Developer Mode (Polished)
+struct DeveloperModeStepPolished: View {
+    @ObservedObject var deviceManager: DeviceManager
+    @ObservedObject var setupManager: AutoSetupManager
+    @State private var isTriggering = false
+
+    var body: some View {
+        HStack(spacing: 20) {
+            // Left - iOS Mock
+            iOSSettingsMock(highlightDeveloperMode: !deviceManager.isDeveloperModeEnabled)
+                .scaleEffect(0.85)
+                .frame(width: 200)
+
+            // Right - Instructions
+            VStack(alignment: .leading, spacing: 20) {
+                HStack {
+                    Circle()
+                        .fill(deviceManager.isDeveloperModeEnabled ? Color.green : Color.orange)
+                        .frame(width: 12, height: 12)
+
+                    Text(deviceManager.isDeveloperModeEnabled ? "Developer Mode Enabled" : "Enable Developer Mode")
+                        .font(.title2.bold())
+                }
+
+                Text("Developer Mode allows the Mac to access advanced features on your iPhone for location simulation.")
+                    .font(.subheadline)
+                    .foregroundColor(.secondary)
+
+                Divider()
+
+                if !deviceManager.isDeveloperModeEnabled {
+                    // Auto-enable button
+                    VStack(alignment: .leading, spacing: 12) {
+                        Text("Option 1: Automatic")
+                            .font(.headline)
+
+                        if isTriggering {
+                            HStack {
+                                ProgressView()
+                                    .scaleEffect(0.8)
+                                Text("Attempting to enable...")
+                                    .font(.caption)
+                                    .foregroundColor(.secondary)
+                            }
+                        } else {
+                            Button {
+                                isTriggering = true
+                                Task {
+                                    _ = await setupManager.triggerDeveloperMode()
+                                    deviceManager.checkConnection()
+                                    isTriggering = false
+                                }
+                            } label: {
+                                Label("Auto-Enable Developer Mode", systemImage: "wand.and.stars")
+                            }
+                            .buttonStyle(.borderedProminent)
+                            .disabled(!deviceManager.isPaired)
+                        }
+
+                        Divider()
+                            .padding(.vertical, 8)
+
+                        Text("Option 2: Manual")
+                            .font(.headline)
+
+                        VStack(alignment: .leading, spacing: 8) {
+                            ManualStep(text: "Open Settings on iPhone")
+                            ManualStep(text: "Go to Privacy & Security")
+                            ManualStep(text: "Scroll down to Developer Mode")
+                            ManualStep(text: "Toggle it ON and restart")
+                        }
+                    }
+                } else {
+                    HStack {
+                        Image(systemName: "checkmark.seal.fill")
+                            .font(.largeTitle)
+                            .foregroundColor(.green)
+                        Text("Developer Mode is enabled!\nYou're ready for the next step.")
+                            .font(.subheadline)
+                    }
+                    .padding()
+                    .background(Color.green.opacity(0.1))
+                    .cornerRadius(12)
+                }
+
+                Spacer()
+
+                Button {
+                    deviceManager.checkConnection()
+                } label: {
+                    Label("Check Status", systemImage: "arrow.clockwise")
+                }
+                .buttonStyle(.bordered)
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+        }
+        .padding(40)
+    }
+}
+
+struct ManualStep: View {
+    let text: String
+
+    var body: some View {
+        HStack(spacing: 8) {
+            Image(systemName: "chevron.right")
+                .font(.caption)
+                .foregroundColor(.accentColor)
+            Text(text)
+                .font(.caption)
+        }
+    }
+}
+
+// MARK: - Step 4: Tunnel (Polished)
+struct TunnelStepPolished: View {
     @ObservedObject var tunnelManager: TunnelManager
     @ObservedObject var deviceManager: DeviceManager
 
     var body: some View {
-        VStack(spacing: 24) {
-            Spacer()
+        HStack(spacing: 40) {
+            // Left - Illustration
+            TunnelIllustration(isActive: tunnelManager.isRunning)
+                .frame(width: 250)
 
-            ZStack {
-                Image(systemName: "network")
-                    .font(.system(size: 60))
-                    .foregroundColor(.blue)
-
-                if tunnelManager.isRunning {
-                    Image(systemName: "checkmark.circle.fill")
-                        .font(.system(size: 24))
-                        .foregroundColor(.green)
-                        .offset(x: 35, y: -30)
-                }
-            }
-
-            Text("Start Tunnel Service")
-                .font(.title.bold())
-
-            Text("The tunnel allows communication with your iPhone's developer services.\nThis requires your Mac administrator password.")
-                .multilineTextAlignment(.center)
-                .foregroundColor(.secondary)
-                .padding(.horizontal, 40)
-
-            // Status
-            StatusCard(
-                isComplete: tunnelManager.isRunning,
-                title: tunnelManager.isRunning ? "Tunnel Active" : "Tunnel Not Running",
-                subtitle: tunnelManager.statusMessage
-            )
-
-            if !deviceManager.deviceState.isReady && !deviceManager.isDeveloperModeEnabled {
+            // Right - Content
+            VStack(alignment: .leading, spacing: 20) {
                 HStack {
-                    Image(systemName: "exclamationmark.triangle.fill")
-                        .foregroundColor(.orange)
-                    Text("Complete the previous steps first")
-                        .font(.callout)
-                }
-                .padding()
-                .background(Color.orange.opacity(0.1))
-                .cornerRadius(8)
-            }
+                    Circle()
+                        .fill(tunnelManager.isRunning ? Color.green : Color.orange)
+                        .frame(width: 12, height: 12)
 
-            if tunnelManager.isStarting {
-                ProgressView("Starting tunnel...")
-            } else if tunnelManager.isRunning {
-                HStack {
-                    Image(systemName: "checkmark.seal.fill")
-                        .foregroundColor(.green)
-                    Text("Tunnel is running!")
-                        .foregroundColor(.green)
+                    Text(tunnelManager.isRunning ? "Tunnel Active" : "Start Tunnel Service")
+                        .font(.title2.bold())
                 }
-                .padding()
-                .background(Color.green.opacity(0.1))
-                .cornerRadius(8)
-            } else {
-                Button {
-                    Task {
-                        await tunnelManager.startTunnel()
+
+                Text("The tunnel creates a secure connection between your Mac and iPhone, allowing location data to be sent.")
+                    .font(.subheadline)
+                    .foregroundColor(.secondary)
+
+                Divider()
+
+                VStack(alignment: .leading, spacing: 12) {
+                    InfoRow(icon: "lock.shield", text: "Requires administrator password")
+                    InfoRow(icon: "bolt.fill", text: "Runs in the background")
+                    InfoRow(icon: "arrow.triangle.2.circlepath", text: "Auto-restarts if disconnected")
+                }
+
+                Spacer()
+
+                if tunnelManager.isStarting {
+                    HStack {
+                        ProgressView()
+                            .scaleEffect(0.8)
+                        Text("Starting tunnel...")
+                            .font(.subheadline)
+                            .foregroundColor(.secondary)
                     }
-                } label: {
-                    Label("Start Tunnel", systemImage: "play.fill")
-                }
-                .buttonStyle(.borderedProminent)
-                .controlSize(.large)
-                .disabled(!deviceManager.isPaired)
-            }
+                } else if tunnelManager.isRunning {
+                    HStack {
+                        Image(systemName: "checkmark.seal.fill")
+                            .font(.title)
+                            .foregroundColor(.green)
 
-            Spacer()
+                        VStack(alignment: .leading) {
+                            Text("Tunnel is running!")
+                                .font(.headline)
+                                .foregroundColor(.green)
+                            Text(tunnelManager.statusMessage)
+                                .font(.caption)
+                                .foregroundColor(.secondary)
+                        }
+                    }
+                    .padding()
+                    .background(Color.green.opacity(0.1))
+                    .cornerRadius(12)
+                } else {
+                    Button {
+                        Task {
+                            await tunnelManager.startTunnel()
+                        }
+                    } label: {
+                        Label("Start Tunnel", systemImage: "play.fill")
+                    }
+                    .buttonStyle(.borderedProminent)
+                    .controlSize(.large)
+                    .disabled(!deviceManager.isPaired)
+
+                    if !deviceManager.isPaired {
+                        Text("Complete previous steps first")
+                            .font(.caption)
+                            .foregroundColor(.orange)
+                    }
+                }
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
         }
-        .padding()
+        .padding(40)
     }
 }
 
-// MARK: - Step 5: Ready
-struct ReadyStep: View {
+struct InfoRow: View {
+    let icon: String
+    let text: String
+
+    var body: some View {
+        HStack(spacing: 10) {
+            Image(systemName: icon)
+                .font(.subheadline)
+                .foregroundColor(.accentColor)
+                .frame(width: 20)
+
+            Text(text)
+                .font(.subheadline)
+                .foregroundColor(.secondary)
+        }
+    }
+}
+
+// MARK: - Step 5: Ready (Polished)
+struct ReadyStepPolished: View {
     @ObservedObject var deviceManager: DeviceManager
     @ObservedObject var tunnelManager: TunnelManager
 
@@ -597,128 +734,123 @@ struct ReadyStep: View {
     }
 
     var body: some View {
-        VStack(spacing: 24) {
-            Spacer()
-
+        VStack(spacing: 30) {
             if isReady {
-                Image(systemName: "checkmark.seal.fill")
-                    .font(.system(size: 80))
-                    .foregroundColor(.green)
+                SuccessCelebration()
+                    .frame(height: 150)
 
                 Text("You're All Set!")
-                    .font(.title.bold())
+                    .font(.largeTitle.bold())
 
-                Text("Location Spoofer is ready to use.\nClick anywhere on the map to set your iPhone's location.")
-                    .multilineTextAlignment(.center)
+                Text("Location Spoofer is ready to use.\nClick anywhere on the map to simulate your iPhone's location.")
+                    .font(.body)
                     .foregroundColor(.secondary)
-                    .padding(.horizontal, 40)
+                    .multilineTextAlignment(.center)
 
-                VStack(alignment: .leading, spacing: 12) {
-                    FeatureRow(icon: "hand.tap", text: "Click on map to place a pin")
-                    FeatureRow(icon: "location.fill", text: "Click \"Set Location\" to apply")
-                    FeatureRow(icon: "star.fill", text: "Use quick buttons for preset cities")
-                    FeatureRow(icon: "questionmark.circle", text: "Click ? anytime to reopen this guide")
+                // Quick tips
+                HStack(spacing: 20) {
+                    QuickTipCard(
+                        icon: "hand.tap.fill",
+                        title: "Click Map",
+                        description: "Place a pin"
+                    )
+
+                    QuickTipCard(
+                        icon: "location.fill",
+                        title: "Set Location",
+                        description: "Apply to iPhone"
+                    )
+
+                    QuickTipCard(
+                        icon: "star.fill",
+                        title: "Quick Cities",
+                        description: "Preset locations"
+                    )
+
+                    QuickTipCard(
+                        icon: "questionmark.circle.fill",
+                        title: "Help",
+                        description: "Reopen guide"
+                    )
                 }
-                .padding(.horizontal, 60)
+                .padding(.top, 20)
             } else {
                 Image(systemName: "exclamationmark.triangle.fill")
-                    .font(.system(size: 80))
+                    .font(.system(size: 60))
                     .foregroundColor(.orange)
 
                 Text("Almost There!")
                     .font(.title.bold())
 
-                Text("Please complete the previous steps before finishing setup.")
-                    .multilineTextAlignment(.center)
+                Text("Complete the remaining steps to finish setup.")
+                    .font(.subheadline)
                     .foregroundColor(.secondary)
 
-                VStack(alignment: .leading, spacing: 8) {
-                    ChecklistRow(text: "Dependencies installed", isComplete: true)
-                    ChecklistRow(text: "iPhone connected", isComplete: deviceManager.isConnected)
-                    ChecklistRow(text: "iPhone trusted", isComplete: deviceManager.isPaired)
-                    ChecklistRow(text: "Developer Mode enabled", isComplete: deviceManager.isDeveloperModeEnabled)
-                    ChecklistRow(text: "Tunnel running", isComplete: tunnelManager.isRunning)
+                // Checklist
+                VStack(alignment: .leading, spacing: 12) {
+                    ChecklistItemPolished(text: "Dependencies installed", isComplete: true)
+                    ChecklistItemPolished(text: "iPhone connected", isComplete: deviceManager.isConnected)
+                    ChecklistItemPolished(text: "Computer trusted", isComplete: deviceManager.isPaired)
+                    ChecklistItemPolished(text: "Developer Mode enabled", isComplete: deviceManager.isDeveloperModeEnabled)
+                    ChecklistItemPolished(text: "Tunnel running", isComplete: tunnelManager.isRunning)
                 }
                 .padding()
-                .background(Color.secondary.opacity(0.1))
-                .cornerRadius(8)
+                .background(Color(nsColor: .controlBackgroundColor))
+                .cornerRadius(12)
             }
-
-            Spacer()
         }
-        .padding()
+        .padding(40)
     }
 }
 
-struct ChecklistRow: View {
-    let text: String
-    let isComplete: Bool
-
-    var body: some View {
-        HStack {
-            Image(systemName: isComplete ? "checkmark.circle.fill" : "circle")
-                .foregroundColor(isComplete ? .green : .secondary)
-            Text(text)
-                .foregroundColor(isComplete ? .primary : .secondary)
-        }
-    }
-}
-
-// MARK: - Helper Views
-struct StatusCard: View {
-    let isComplete: Bool
+struct QuickTipCard: View {
+    let icon: String
     let title: String
-    let subtitle: String
+    let description: String
 
     var body: some View {
-        HStack {
-            Circle()
-                .fill(isComplete ? Color.green : Color.orange)
-                .frame(width: 12, height: 12)
+        VStack(spacing: 8) {
+            ZStack {
+                RoundedRectangle(cornerRadius: 12)
+                    .fill(Color.accentColor.opacity(0.1))
+                    .frame(width: 50, height: 50)
 
-            VStack(alignment: .leading, spacing: 2) {
-                Text(title)
-                    .font(.headline)
-                Text(subtitle)
-                    .font(.caption)
-                    .foregroundColor(.secondary)
+                Image(systemName: icon)
+                    .font(.title2)
+                    .foregroundColor(.accentColor)
             }
 
-            Spacer()
+            Text(title)
+                .font(.caption.weight(.semibold))
 
-            if isComplete {
-                Image(systemName: "checkmark.circle.fill")
-                    .foregroundColor(.green)
-            }
+            Text(description)
+                .font(.caption2)
+                .foregroundColor(.secondary)
         }
-        .padding()
-        .background(isComplete ? Color.green.opacity(0.1) : Color.orange.opacity(0.1))
-        .cornerRadius(8)
-        .padding(.horizontal, 40)
+        .frame(width: 100)
     }
 }
 
-struct InstructionRow: View {
-    let number: Int
+struct ChecklistItemPolished: View {
     let text: String
+    let isComplete: Bool
 
     var body: some View {
-        HStack(alignment: .top, spacing: 12) {
-            ZStack {
-                Circle()
-                    .fill(Color.accentColor)
-                    .frame(width: 24, height: 24)
-                Text("\(number)")
-                    .font(.caption.bold())
-                    .foregroundColor(.white)
-            }
+        HStack(spacing: 12) {
+            Image(systemName: isComplete ? "checkmark.circle.fill" : "circle")
+                .font(.title3)
+                .foregroundColor(isComplete ? .green : .secondary.opacity(0.5))
 
             Text(text)
-                .font(.callout)
+                .font(.subheadline)
+                .foregroundColor(isComplete ? .primary : .secondary)
+
+            Spacer()
         }
     }
 }
 
+// MARK: - Preview
 #Preview {
     OnboardingView(
         isPresented: .constant(true),
