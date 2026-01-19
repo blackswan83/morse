@@ -21,6 +21,7 @@
 		8A0000010000000000000012 /* DeviceManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8A0000020000000000000012 /* DeviceManager.swift */; };
 		8A0000010000000000000013 /* TunnelManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8A0000020000000000000013 /* TunnelManager.swift */; };
 		8A0000010000000000000014 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 8A0000020000000000000014 /* Assets.xcassets */; };
+		8A0000010000000000000015 /* OnboardingView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8A0000020000000000000017 /* OnboardingView.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -40,6 +41,7 @@
 		8A0000020000000000000014 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		8A0000020000000000000015 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 		8A0000020000000000000016 /* LocationSpoofer.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = LocationSpoofer.entitlements; sourceTree = "<group>"; };
+		8A0000020000000000000017 /* OnboardingView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OnboardingView.swift; sourceTree = "<group>"; };
 		8A0000030000000000000001 /* LocationSpoofer.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = LocationSpoofer.app; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
@@ -95,6 +97,7 @@
 				8A0000020000000000000007 /* RouteSimulationView.swift */,
 				8A0000020000000000000008 /* SettingsView.swift */,
 				8A0000020000000000000009 /* MenuBarView.swift */,
+				8A0000020000000000000017 /* OnboardingView.swift */,
 			);
 			path = Views;
 			sourceTree = "<group>";
@@ -207,6 +210,7 @@
 				8A0000010000000000000011 /* LocationManager.swift in Sources */,
 				8A0000010000000000000012 /* DeviceManager.swift in Sources */,
 				8A0000010000000000000013 /* TunnelManager.swift in Sources */,
+				8A0000010000000000000015 /* OnboardingView.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

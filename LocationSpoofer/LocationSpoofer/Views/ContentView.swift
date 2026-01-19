@@ -20,6 +20,9 @@ struct ContentView: View {
     @State private var currentRoute: Route?
     @State private var routeWaypoints: [Coordinate] = []
     @State private var isDrawingRoute = false
+    @State private var showingOnboarding = false
+
+    @AppStorage("hasCompletedOnboarding") private var hasCompletedOnboarding = false
 
     var body: some View {
         HSplitView {
@@ -103,6 +106,15 @@ struct ContentView: View {
                         .font(.headline)
                 }
             }
+
+            ToolbarItem(placement: .automatic) {
+                Button {
+                    showingOnboarding = true
+                } label: {
+                    Image(systemName: "questionmark.circle")
+                }
+                .help("Setup Guide")
+            }
         }
         .onAppear {
             // Load last used location
@@ -113,6 +125,21 @@ struct ContentView: View {
 
             // Set up notification handlers
             setupNotificationHandlers()
+
+            // Show onboarding on first launch
+            if !hasCompletedOnboarding {
+                // Delay slightly so the window is ready
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+                    showingOnboarding = true
+                }
+            }
+        }
+        .sheet(isPresented: $showingOnboarding) {
+            OnboardingView(
+                isPresented: $showingOnboarding,
+                deviceManager: deviceManager,
+                tunnelManager: tunnelManager
+            )
         }
         .onChange(of: locationManager.isSpoofing) { _, newValue in
             appState.isSpoofingActive = newValue
