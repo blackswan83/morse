@@ -7,6 +7,7 @@
 
 import Foundation
 import Combine
+import SwiftUI
 
 /// Device connection and readiness state
 enum DeviceState: Equatable {

@@ -7,6 +7,7 @@
 
 import Foundation
 import AppKit
+import SwiftUI
 
 @MainActor
 class AutoSetupManager: ObservableObject {
@@ -348,9 +349,4 @@ enum SetupError: LocalizedError {
     }
 }
 
-// MARK: - Command Result (shared with other managers)
-
-struct CommandResult {
-    let exitCode: Int
-    let output: String
-}
+// CommandResult is defined in LocationManager.swift

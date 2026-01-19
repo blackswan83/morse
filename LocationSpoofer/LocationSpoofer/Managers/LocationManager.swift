@@ -7,6 +7,8 @@
 
 import Foundation
 import Combine
+import SwiftUI
+import UserNotifications
 
 @MainActor
 class LocationManager: ObservableObject {
@@ -272,15 +274,37 @@ class LocationManager: ObservableObject {
         let notifyOnChange = UserDefaults.standard.bool(forKey: "notifyOnLocationChange")
         guard notifyOnChange else { return }
 
-        let notification = NSUserNotification()
-        notification.title = title
-        notification.informativeText = body
-        notification.soundName = NSUserNotificationDefaultSoundName
-        NSUserNotificationCenter.default.deliver(notification)
+        let content = UNMutableNotificationContent()
+        content.title = title
+        content.body = body
+        content.sound = .default
+
+        let request = UNNotificationRequest(
+            identifier: UUID().uuidString,
+            content: content,
+            trigger: nil // Deliver immediately
+        )
+
+        UNUserNotificationCenter.current().add(request) { error in
+            if let error = error {
+                print("Notification error: \(error.localizedDescription)")
+            }
+        }
+    }
+
+    /// Request notification permissions (call on app launch)
+    static func requestNotificationPermissions() {
+        UNUserNotificationCenter.current().requestAuthorization(options: [.alert, .sound]) { granted, error in
+            if let error = error {
+                print("Notification permission error: \(error.localizedDescription)")
+            }
+        }
     }
 }
 
-// MARK: - Command Result
+// MARK: - Command Result (Shared across all managers)
+
+/// Result of executing a shell command
 struct CommandResult {
     let exitCode: Int
     let output: String
