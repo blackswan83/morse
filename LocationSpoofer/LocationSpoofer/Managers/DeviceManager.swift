@@ -7,7 +7,6 @@
 
 import Foundation
 import Combine
-import SwiftUI
 
 /// Device connection and readiness state
 enum DeviceState: Equatable {
@@ -51,7 +50,10 @@ class DeviceManager: ObservableObject {
     private var monitorTimer: Timer?
     private var checkTask: Task<Void, Never>?
 
-    @AppStorage("pythonPath") private var pythonPath = "/usr/bin/python3"
+    // Settings (using UserDefaults directly instead of @AppStorage)
+    private var pythonPath: String {
+        UserDefaults.standard.string(forKey: "pythonPath") ?? "/usr/bin/python3"
+    }
 
     // MARK: - Public Methods
 

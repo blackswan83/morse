@@ -7,7 +7,6 @@
 
 import Foundation
 import AppKit
-import SwiftUI
 
 @MainActor
 class AutoSetupManager: ObservableObject {
@@ -24,7 +23,11 @@ class AutoSetupManager: ObservableObject {
     @Published var pymobiledeviceInstalled = false
     @Published var libimobiledeviceInstalled = false
 
-    @AppStorage("pythonPath") private var pythonPath = "/usr/bin/python3"
+    // Settings (using UserDefaults directly instead of @AppStorage)
+    private var pythonPath: String {
+        get { UserDefaults.standard.string(forKey: "pythonPath") ?? "/usr/bin/python3" }
+        set { UserDefaults.standard.set(newValue, forKey: "pythonPath") }
+    }
 
     // MARK: - Check Dependencies
 
@@ -348,5 +351,3 @@ enum SetupError: LocalizedError {
         }
     }
 }
-
-// CommandResult is defined in LocationManager.swift

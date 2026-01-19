@@ -7,8 +7,17 @@
 
 import Foundation
 import Combine
-import SwiftUI
 import UserNotifications
+
+// MARK: - Command Result (Shared across all managers)
+
+/// Result of executing a shell command
+struct CommandResult {
+    let exitCode: Int
+    let output: String
+
+    var isSuccess: Bool { exitCode == 0 }
+}
 
 @MainActor
 class LocationManager: ObservableObject {
@@ -29,8 +38,15 @@ class LocationManager: ObservableObject {
     private var routeSimulationTask: Task<Void, Never>?
     private var simulationCancelled = false
 
-    @AppStorage("pythonPath") private var pythonPath = "/usr/bin/python3"
-    @AppStorage("updateInterval") private var updateInterval: Double = 2.0
+    // Settings (using UserDefaults directly instead of @AppStorage)
+    private var pythonPath: String {
+        UserDefaults.standard.string(forKey: "pythonPath") ?? "/usr/bin/python3"
+    }
+
+    private var updateInterval: Double {
+        let value = UserDefaults.standard.double(forKey: "updateInterval")
+        return value > 0 ? value : 2.0
+    }
 
     // MARK: - Set Location
 
@@ -141,6 +157,8 @@ class LocationManager: ObservableObject {
         let totalTime = Double(interpolatedPoints.count - 1) * intervalBetweenPoints
         estimatedTimeRemaining = totalTime
 
+        let currentUpdateInterval = updateInterval
+
         routeSimulationTask = Task {
             var pointIndex = 0
             var loopCount = 0
@@ -191,7 +209,7 @@ class LocationManager: ObservableObject {
 
                     // Wait for next point
                     if i < interpolatedPoints.count - 1 {
-                        try? await Task.sleep(nanoseconds: UInt64(updateInterval * 1_000_000_000))
+                        try? await Task.sleep(nanoseconds: UInt64(currentUpdateInterval * 1_000_000_000))
                     }
                 }
 
@@ -237,10 +255,11 @@ class LocationManager: ObservableObject {
     // MARK: - Helper Methods
 
     private func runPymobiledeviceCommand(arguments: [String]) async throws -> CommandResult {
+        let path = pythonPath
         return try await withCheckedThrowingContinuation { continuation in
             Task.detached {
                 let process = Process()
-                process.executableURL = URL(fileURLWithPath: self.pythonPath)
+                process.executableURL = URL(fileURLWithPath: path)
                 process.arguments = ["-m", "pymobiledevice3"] + arguments
 
                 let outputPipe = Pipe()
@@ -300,14 +319,4 @@ class LocationManager: ObservableObject {
             }
         }
     }
-}
-
-// MARK: - Command Result (Shared across all managers)
-
-/// Result of executing a shell command
-struct CommandResult {
-    let exitCode: Int
-    let output: String
-
-    var isSuccess: Bool { exitCode == 0 }
 }

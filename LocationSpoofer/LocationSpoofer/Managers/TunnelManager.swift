@@ -7,7 +7,6 @@
 
 import Foundation
 import Combine
-import SwiftUI
 import Security
 
 @MainActor
@@ -19,7 +18,10 @@ class TunnelManager: ObservableObject {
     private var tunnelProcess: Process?
     private var statusCheckTimer: Timer?
 
-    @AppStorage("pythonPath") private var pythonPath = "/usr/bin/python3"
+    // Settings (using UserDefaults directly instead of @AppStorage)
+    private var pythonPath: String {
+        UserDefaults.standard.string(forKey: "pythonPath") ?? "/usr/bin/python3"
+    }
 
     // MARK: - Public Methods
 
@@ -97,10 +99,12 @@ class TunnelManager: ObservableObject {
     // MARK: - Private Methods
 
     private func startTunnelWithAdminPrivileges() async throws -> Bool {
+        let currentPythonPath = pythonPath
+
         // Create a shell script to run the tunnel
         let scriptContent = """
         #!/bin/bash
-        "\(pythonPath)" -m pymobiledevice3 remote tunneld &
+        "\(currentPythonPath)" -m pymobiledevice3 remote tunneld &
         """
 
         // Write script to temp file
