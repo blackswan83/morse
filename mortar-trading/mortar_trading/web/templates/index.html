@@ -1,0 +1,204 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mortar Trading</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        primary: '#3B82F6',
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+        .animate-pulse { animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite; }
+    </style>
+</head>
+<body class="bg-gray-900 min-h-screen">
+    <div id="app" class="min-h-screen flex flex-col items-center justify-center p-4">
+        <!-- Loading state -->
+        <div id="loading" class="text-center">
+            <div class="inline-flex items-center justify-center w-20 h-20 bg-blue-600 rounded-full mb-6">
+                <svg class="w-10 h-10 text-white animate-pulse" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/>
+                </svg>
+            </div>
+            <h1 class="text-3xl font-bold text-white mb-2">Mortar Trading</h1>
+            <p class="text-gray-400 mb-8">Crypto Volatility Trading Bot</p>
+
+            <div class="bg-gray-800 rounded-xl p-8 max-w-md w-full">
+                <div id="login-form">
+                    <h2 class="text-xl font-semibold text-white mb-6">Sign In</h2>
+
+                    <div id="error-message" class="hidden mb-4 p-3 bg-red-500/20 border border-red-500/50 rounded-lg text-red-400 text-sm"></div>
+
+                    <form onsubmit="handleLogin(event)" class="space-y-4">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-300 mb-2">Username</label>
+                            <input type="text" id="username" name="username" required
+                                class="w-full px-4 py-3 bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                placeholder="Enter username">
+                        </div>
+
+                        <div>
+                            <label class="block text-sm font-medium text-gray-300 mb-2">Password</label>
+                            <input type="password" id="password" name="password" required
+                                class="w-full px-4 py-3 bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                placeholder="Enter password">
+                        </div>
+
+                        <button type="submit" id="submit-btn"
+                            class="w-full bg-blue-600 text-white py-3 px-4 rounded-lg font-medium hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-colors">
+                            Sign In
+                        </button>
+                    </form>
+
+                    <div class="mt-6 p-4 bg-gray-700/50 rounded-lg">
+                        <p class="text-sm text-gray-400">
+                            <strong class="text-gray-300">Default credentials:</strong><br>
+                            Username: <code class="text-blue-400">admin</code><br>
+                            Password: <code class="text-blue-400">admin123</code>
+                        </p>
+                    </div>
+                </div>
+
+                <div id="dashboard" class="hidden">
+                    <div class="flex items-center justify-between mb-6">
+                        <h2 class="text-xl font-semibold text-white">Dashboard</h2>
+                        <button onclick="logout()" class="text-gray-400 hover:text-white text-sm">Logout</button>
+                    </div>
+
+                    <div id="status" class="space-y-4">
+                        <div class="p-4 bg-gray-700 rounded-lg">
+                            <div class="text-sm text-gray-400 mb-1">System Status</div>
+                            <div id="engine-status" class="text-lg font-semibold text-green-400">Loading...</div>
+                        </div>
+
+                        <div class="p-4 bg-gray-700 rounded-lg">
+                            <div class="text-sm text-gray-400 mb-1">Environment</div>
+                            <div id="environment" class="text-lg font-semibold text-white">-</div>
+                        </div>
+
+                        <div class="p-4 bg-gray-700 rounded-lg">
+                            <div class="text-sm text-gray-400 mb-1">Open Positions</div>
+                            <div id="positions-count" class="text-lg font-semibold text-white">0</div>
+                        </div>
+                    </div>
+
+                    <div class="mt-6 text-center">
+                        <a href="/api/docs" target="_blank" class="text-blue-400 hover:text-blue-300 text-sm">
+                            API Documentation →
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let token = localStorage.getItem('mortar_token');
+
+        if (token) {
+            showDashboard();
+        }
+
+        async function handleLogin(event) {
+            event.preventDefault();
+
+            const username = document.getElementById('username').value;
+            const password = document.getElementById('password').value;
+            const errorEl = document.getElementById('error-message');
+            const submitBtn = document.getElementById('submit-btn');
+
+            errorEl.classList.add('hidden');
+            submitBtn.disabled = true;
+            submitBtn.textContent = 'Signing in...';
+
+            try {
+                const response = await fetch('/api/auth/login', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ username, password })
+                });
+
+                const data = await response.json();
+
+                if (!response.ok) {
+                    throw new Error(data.detail || 'Login failed');
+                }
+
+                token = data.access_token;
+                localStorage.setItem('mortar_token', token);
+                showDashboard();
+
+            } catch (error) {
+                errorEl.textContent = error.message;
+                errorEl.classList.remove('hidden');
+            } finally {
+                submitBtn.disabled = false;
+                submitBtn.textContent = 'Sign In';
+            }
+        }
+
+        async function showDashboard() {
+            document.getElementById('login-form').classList.add('hidden');
+            document.getElementById('dashboard').classList.remove('hidden');
+
+            try {
+                const response = await fetch('/api/status', {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+
+                if (!response.ok) {
+                    if (response.status === 401) {
+                        logout();
+                        return;
+                    }
+                    throw new Error('Failed to load status');
+                }
+
+                const data = await response.json();
+
+                document.getElementById('engine-status').textContent = data.running ? 'Running' : 'Stopped';
+                document.getElementById('engine-status').className = `text-lg font-semibold ${data.running ? 'text-green-400' : 'text-red-400'}`;
+                document.getElementById('environment').textContent = data.environment;
+
+                // Fetch positions
+                const posResponse = await fetch('/api/positions', {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                const positions = await posResponse.json();
+                document.getElementById('positions-count').textContent = positions.length;
+
+            } catch (error) {
+                console.error('Error loading dashboard:', error);
+            }
+        }
+
+        function logout() {
+            localStorage.removeItem('mortar_token');
+            token = null;
+            document.getElementById('login-form').classList.remove('hidden');
+            document.getElementById('dashboard').classList.add('hidden');
+        }
+
+        // Refresh status every 10 seconds
+        setInterval(() => {
+            if (token) {
+                showDashboard();
+            }
+        }, 10000);
+    </script>
+</body>
+</html>

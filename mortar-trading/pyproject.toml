@@ -71,6 +71,14 @@ dependencies = [
     "python-dotenv>=1.0.0",
     "pyyaml>=6.0",
 
+    # Web Application
+    "fastapi>=0.104.0",
+    "uvicorn[standard]>=0.24.0",
+    "python-jose[cryptography]>=3.3.0",
+    "passlib[bcrypt]>=1.7.4",
+    "python-multipart>=0.0.6",
+    "jinja2>=3.1.0",
+
     # Utilities
     "httpx>=0.24.0",
     "tenacity>=8.2.0",
@@ -95,6 +103,7 @@ backtest = [
 
 [project.scripts]
 mortar = "mortar_trading.cli:main"
+mortar-web = "mortar_trading.web.run:main"
 mortar-backtest = "mortar_trading.backtest.cli:main"
 mortar-paper = "mortar_trading.paper:main"
 
