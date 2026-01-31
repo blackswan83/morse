@@ -1,0 +1,122 @@
+[build-system]
+requires = ["setuptools>=61.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "mortar-trading"
+version = "0.1.0"
+description = "Crypto Volatility Trading Bot with Multi-Timeframe Analysis"
+readme = "README.md"
+requires-python = ">=3.10"
+license = {text = "MIT"}
+authors = [
+    {name = "Mortar Trading Team"}
+]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Financial and Insurance Industry",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+]
+
+dependencies = [
+    # Core
+    "numpy>=1.24.0",
+    "pandas>=2.0.0",
+    "scipy>=1.10.0",
+
+    # Trading & Exchange
+    "ccxt>=4.0.0",
+    "python-binance>=1.0.17",
+    "websockets>=11.0",
+
+    # Machine Learning
+    "torch>=2.0.0",
+    "scikit-learn>=1.3.0",
+    "xgboost>=2.0.0",
+    "lightgbm>=4.0.0",
+
+    # Reinforcement Learning
+    "stable-baselines3>=2.0.0",
+    "gymnasium>=0.29.0",
+
+    # NLP & Sentiment
+    "transformers>=4.30.0",
+    "vaderSentiment>=3.3.2",
+    "nltk>=3.8.0",
+
+    # Time Series & Statistics
+    "arch>=6.0.0",
+    "statsmodels>=0.14.0",
+
+    # Database
+    "redis>=4.5.0",
+    "questdb>=1.1.0",
+    "sqlalchemy>=2.0.0",
+
+    # Async & Messaging
+    "aiohttp>=3.8.0",
+    "pyzmq>=25.0.0",
+    "asyncio-throttle>=1.0.0",
+
+    # Monitoring & Logging
+    "structlog>=23.0.0",
+    "prometheus-client>=0.17.0",
+
+    # Configuration
+    "pydantic>=2.0.0",
+    "pydantic-settings>=2.0.0",
+    "python-dotenv>=1.0.0",
+    "pyyaml>=6.0",
+
+    # Utilities
+    "httpx>=0.24.0",
+    "tenacity>=8.2.0",
+    "python-telegram-bot>=20.0",
+    "discord.py>=2.3.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=7.0.0",
+    "pytest-asyncio>=0.21.0",
+    "pytest-cov>=4.0.0",
+    "black>=23.0.0",
+    "ruff>=0.1.0",
+    "mypy>=1.5.0",
+    "pre-commit>=3.0.0",
+]
+backtest = [
+    "vectorbt>=0.26.0",
+    "quantstats>=0.0.62",
+]
+
+[project.scripts]
+mortar = "mortar_trading.cli:main"
+mortar-backtest = "mortar_trading.backtest.cli:main"
+mortar-paper = "mortar_trading.paper:main"
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["mortar_trading*"]
+
+[tool.black]
+line-length = 100
+target-version = ['py310', 'py311', 'py312']
+
+[tool.ruff]
+line-length = 100
+select = ["E", "F", "I", "N", "W", "UP"]
+ignore = ["E501"]
+
+[tool.mypy]
+python_version = "3.10"
+warn_return_any = true
+warn_unused_configs = true
+ignore_missing_imports = true
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+testpaths = ["tests"]

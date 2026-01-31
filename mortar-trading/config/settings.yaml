@@ -1,0 +1,255 @@
+# Mortar Trading Bot Configuration
+# ================================
+
+# System Settings
+system:
+  name: "mortar-trading"
+  version: "0.1.0"
+  environment: "development"  # development, paper, production
+  log_level: "INFO"
+  timezone: "UTC"
+
+# Exchange Configuration
+exchange:
+  name: "binance"
+  testnet: true
+  api_key: "${BINANCE_API_KEY}"
+  api_secret: "${BINANCE_API_SECRET}"
+  rate_limit:
+    requests_per_second: 10
+    orders_per_second: 5
+
+  # Testnet endpoints
+  testnet_endpoints:
+    rest: "https://testnet.binancefuture.com"
+    websocket: "wss://fstream.binancefuture.com"
+
+  # Production endpoints
+  production_endpoints:
+    rest: "https://fapi.binance.com"
+    websocket: "wss://fstream.binance.com"
+
+# Trading Pairs Configuration
+trading:
+  symbols:
+    primary:
+      - "BTCUSDT"
+      - "ETHUSDT"
+    secondary:
+      - "SOLUSDT"
+      - "BNBUSDT"
+      - "XRPUSDT"
+      - "ADAUSDT"
+      - "AVAXUSDT"
+      - "DOTUSDT"
+      - "MATICUSDT"
+      - "LINKUSDT"
+
+  # Timeframe Configuration (Three-Layer Architecture)
+  timeframes:
+    macro:
+      primary: "4h"
+      secondary: "1d"
+    meso:
+      primary: "15m"
+      secondary: "1h"
+    micro:
+      primary: "1m"
+      secondary: "5m"
+
+# Risk Management (Non-negotiable limits)
+risk:
+  max_leverage: 5
+  single_position_risk_pct: 2.0  # Max 2% of equity per position
+  total_portfolio_heat_pct: 10.0  # Max 10% total exposure
+  max_correlated_positions: 3
+  correlation_threshold: 0.8
+
+  # Daily/Weekly/Monthly Loss Limits (Circuit Breakers)
+  loss_limits:
+    daily_pct: 5.0
+    weekly_pct: 10.0
+    monthly_pct: 15.0
+
+  # Volatility Targeting
+  target_annual_volatility_pct: 25.0
+  volatility_lookback_days: 30
+
+# Position Sizing
+position_sizing:
+  method: "atr_volatility_target"  # atr_volatility_target, fixed_fractional, kelly
+  atr_period: 14
+  atr_multiplier: 2.0
+  min_position_usd: 100
+  max_position_usd: 50000
+
+# Sentiment Configuration
+sentiment:
+  providers:
+    - name: "lunarcrush"
+      enabled: true
+      api_key: "${LUNARCRUSH_API_KEY}"
+      update_interval_seconds: 300
+
+    - name: "santiment"
+      enabled: true
+      api_key: "${SANTIMENT_API_KEY}"
+      update_interval_seconds: 600
+
+    - name: "twitter"
+      enabled: false
+      api_key: "${TWITTER_API_KEY}"
+      api_secret: "${TWITTER_API_SECRET}"
+      bearer_token: "${TWITTER_BEARER_TOKEN}"
+
+  # Feature Configuration
+  features:
+    sentiment_zscore_window: 30  # days
+    volume_weight_decay: 0.95
+    influencer_min_followers: 10000
+
+# Volatility Models
+volatility:
+  models:
+    egarch:
+      enabled: true
+      p: 1
+      q: 1
+      dist: "studentst"
+
+    har_rv:
+      enabled: true
+      lags: [1, 5, 22]  # daily, weekly, monthly
+
+    ml_ensemble:
+      enabled: true
+      models: ["xgboost", "lightgbm"]
+      features_window: 100
+
+# Regime Classification
+regime:
+  lookback_periods: 100
+  volatility_percentiles: [25, 75]
+  trend_ema_periods: [20, 50]
+  regimes:
+    - "trending_low_vol"
+    - "trending_high_vol"
+    - "range_low_vol"
+    - "range_high_vol"
+    - "breakout"
+    - "crisis"
+
+# RL Agents Configuration
+rl_agents:
+  macro:
+    algorithm: "PPO"
+    learning_rate: 0.0003
+    n_steps: 2048
+    batch_size: 64
+    n_epochs: 10
+    gamma: 0.99
+    training_timesteps: 1000000
+
+  meso:
+    algorithm: "SAC"
+    learning_rate: 0.0003
+    buffer_size: 1000000
+    batch_size: 256
+    tau: 0.005
+    gamma: 0.99
+    training_timesteps: 500000
+
+  micro:
+    algorithm: "TD3"
+    learning_rate: 0.0003
+    buffer_size: 1000000
+    batch_size: 256
+    tau: 0.005
+    policy_delay: 2
+    training_timesteps: 500000
+
+# Master Macro Input System
+master_input:
+  enabled: true
+  default_direction: "neutral"  # strong_bear, bear, neutral, bull, strong_bull
+  default_confidence: "medium"  # low, medium, high
+  default_time_horizon: "days"  # days, weeks, months
+
+  # How master input affects system
+  adjustments:
+    high_confidence_max_allocation: 0.8
+    low_confidence_size_reduction: 0.5
+    event_position_reduction: 0.5
+    event_stop_widening: 1.5
+
+# Database Configuration
+database:
+  questdb:
+    host: "localhost"
+    port: 9009
+    http_port: 9000
+
+  redis:
+    host: "localhost"
+    port: 6379
+    db: 0
+    password: "${REDIS_PASSWORD}"
+
+# Monitoring & Alerts
+monitoring:
+  prometheus:
+    enabled: true
+    port: 9090
+
+  alerts:
+    telegram:
+      enabled: true
+      bot_token: "${TELEGRAM_BOT_TOKEN}"
+      chat_id: "${TELEGRAM_CHAT_ID}"
+
+    discord:
+      enabled: false
+      webhook_url: "${DISCORD_WEBHOOK_URL}"
+
+  # Alert Thresholds
+  thresholds:
+    position_pnl_alert_pct: 5.0
+    daily_pnl_alert_pct: 3.0
+    volatility_spike_multiplier: 2.0
+
+# Backtesting Configuration
+backtest:
+  start_date: "2022-01-01"
+  end_date: "2024-12-31"
+  initial_capital: 100000
+
+  # Transaction Costs
+  costs:
+    maker_fee_pct: 0.02
+    taker_fee_pct: 0.04
+    slippage_pct: 0.05
+
+  # Validation
+  walk_forward:
+    in_sample_ratio: 0.7
+    n_splits: 5
+
+  # Target Metrics
+  targets:
+    min_sharpe_ratio: 0.8
+    max_drawdown_pct: 20.0
+    min_win_rate_pct: 55.0
+    min_profit_factor: 1.5
+
+# Logging Configuration
+logging:
+  format: "json"  # json, text
+  file:
+    enabled: true
+    path: "logs/"
+    rotation: "daily"
+    retention_days: 30
+
+  console:
+    enabled: true
+    color: true
