@@ -1,0 +1,49 @@
+# Dependencies
+node_modules/
+__pycache__/
+*.pyc
+*.pyo
+.venv/
+venv/
+env/
+
+# Frontend build (built separately if needed)
+mortar_trading/web/frontend/node_modules/
+mortar_trading/web/frontend/dist/
+
+# Development files
+.git/
+.gitignore
+*.md
+!README.md
+.env
+.env.*
+*.log
+logs/
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# Testing
+.pytest_cache/
+.coverage
+htmlcov/
+.tox/
+tests/
+
+# Build artifacts
+build/
+dist/
+*.egg-info/
+.eggs/
+
+# Data files
+data/
+*.csv
+*.parquet
+checkpoints/
+models/*.pkl
+models/*.pt

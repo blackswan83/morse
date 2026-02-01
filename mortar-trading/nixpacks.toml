@@ -1,0 +1,18 @@
+# Nixpacks configuration for Mortar Trading
+# This is a Python application - frontend is built separately
+
+[phases.setup]
+nixPkgs = ["python311", "python311Packages.pip"]
+
+[phases.install]
+cmds = ["pip install -e ."]
+
+[phases.build]
+cmds = []
+
+[start]
+cmd = "mortar-web --host 0.0.0.0 --port ${PORT:-8000}"
+
+# Ignore the frontend directory for the main build
+[staticAssets]
+include = []
