@@ -10,10 +10,10 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     curl \
     && rm -rf /var/lib/apt/lists/*
 
-# Copy project files from mortar-trading subdirectory
-COPY mortar-trading/pyproject.toml mortar-trading/README.md ./
-COPY mortar-trading/mortar_trading ./mortar_trading
-COPY mortar-trading/config ./config
+# Copy project files
+COPY pyproject.toml README.md ./
+COPY mortar_trading ./mortar_trading
+COPY config ./config
 
 # Install Python dependencies
 RUN pip install --no-cache-dir -e .
@@ -30,5 +30,5 @@ ENV PORT=8000
 HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
     CMD curl -f http://localhost:8000/health || exit 1
 
-# Start command
-CMD ["mortar-web", "--host", "0.0.0.0", "--port", "8000"]
+# Start command - use shell form to expand PORT variable
+CMD mortar-web --host 0.0.0.0 --port ${PORT:-8000}
