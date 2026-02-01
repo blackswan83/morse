@@ -1,0 +1,3 @@
+# Disable Nixpacks auto-detection to force Dockerfile usage
+# This file tells Nixpacks to not detect any providers
+providers = []
