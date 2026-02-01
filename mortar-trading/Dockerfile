@@ -10,10 +10,10 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     curl \
     && rm -rf /var/lib/apt/lists/*
 
-# Copy project files (excluding frontend node_modules)
-COPY pyproject.toml README.md ./
-COPY mortar_trading ./mortar_trading
-COPY config ./config
+# Copy project files from mortar-trading subdirectory
+COPY mortar-trading/pyproject.toml mortar-trading/README.md ./
+COPY mortar-trading/mortar_trading ./mortar_trading
+COPY mortar-trading/config ./config
 
 # Install Python dependencies
 RUN pip install --no-cache-dir -e .
@@ -24,6 +24,7 @@ EXPOSE 8000
 # Environment variables
 ENV PYTHONUNBUFFERED=1
 ENV ENVIRONMENT=production
+ENV PORT=8000
 
 # Health check
 HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
