@@ -1,0 +1,33 @@
+# Node.js - ignore all of it for Python build
+node_modules/
+package-lock.json
+client/
+server/
+shared/
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+.venv/
+venv/
+
+# Git
+.git/
+.gitignore
+
+# IDE
+.idea/
+.vscode/
+
+# Logs
+*.log
+logs/
+
+# Testing
+.pytest_cache/
+.coverage
+
+# Other
+*.md
+!mortar-trading/README.md
