@@ -1,0 +1,428 @@
+// !$*UTF8*$!
+{
+	archiveVersion = 1;
+	classes = {
+	};
+	objectVersion = 56;
+	objects = {
+
+/* Begin PBXBuildFile section */
+		8A0000010000000000000001 /* LocationSpooferApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8A0000020000000000000001 /* LocationSpooferApp.swift */; };
+		8A0000010000000000000002 /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8A0000020000000000000002 /* ContentView.swift */; };
+		8A0000010000000000000003 /* MapViewRepresentable.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8A0000020000000000000003 /* MapViewRepresentable.swift */; };
+		8A0000010000000000000004 /* DeviceStatusView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8A0000020000000000000004 /* DeviceStatusView.swift */; };
+		8A0000010000000000000005 /* ActionButtonsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8A0000020000000000000005 /* ActionButtonsView.swift */; };
+		8A0000010000000000000006 /* QuickLocationsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8A0000020000000000000006 /* QuickLocationsView.swift */; };
+		8A0000010000000000000007 /* RouteSimulationView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8A0000020000000000000007 /* RouteSimulationView.swift */; };
+		8A0000010000000000000008 /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8A0000020000000000000008 /* SettingsView.swift */; };
+		8A0000010000000000000009 /* MenuBarView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8A0000020000000000000009 /* MenuBarView.swift */; };
+		8A0000010000000000000010 /* Coordinate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8A0000020000000000000010 /* Coordinate.swift */; };
+		8A0000010000000000000011 /* LocationManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8A0000020000000000000011 /* LocationManager.swift */; };
+		8A0000010000000000000012 /* DeviceManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8A0000020000000000000012 /* DeviceManager.swift */; };
+		8A0000010000000000000013 /* TunnelManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8A0000020000000000000013 /* TunnelManager.swift */; };
+		8A0000010000000000000014 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 8A0000020000000000000014 /* Assets.xcassets */; };
+		8A0000010000000000000015 /* OnboardingView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8A0000020000000000000017 /* OnboardingView.swift */; };
+		8A0000010000000000000016 /* AutoSetupManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8A0000020000000000000018 /* AutoSetupManager.swift */; };
+		8A0000010000000000000019 /* OnboardingIllustrations.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8A0000020000000000000019 /* OnboardingIllustrations.swift */; };
+/* End PBXBuildFile section */
+
+/* Begin PBXFileReference section */
+		8A0000020000000000000001 /* LocationSpooferApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LocationSpooferApp.swift; sourceTree = "<group>"; };
+		8A0000020000000000000002 /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
+		8A0000020000000000000003 /* MapViewRepresentable.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MapViewRepresentable.swift; sourceTree = "<group>"; };
+		8A0000020000000000000004 /* DeviceStatusView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DeviceStatusView.swift; sourceTree = "<group>"; };
+		8A0000020000000000000005 /* ActionButtonsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ActionButtonsView.swift; sourceTree = "<group>"; };
+		8A0000020000000000000006 /* QuickLocationsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = QuickLocationsView.swift; sourceTree = "<group>"; };
+		8A0000020000000000000007 /* RouteSimulationView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RouteSimulationView.swift; sourceTree = "<group>"; };
+		8A0000020000000000000008 /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsView.swift; sourceTree = "<group>"; };
+		8A0000020000000000000009 /* MenuBarView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MenuBarView.swift; sourceTree = "<group>"; };
+		8A0000020000000000000010 /* Coordinate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Coordinate.swift; sourceTree = "<group>"; };
+		8A0000020000000000000011 /* LocationManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LocationManager.swift; sourceTree = "<group>"; };
+		8A0000020000000000000012 /* DeviceManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DeviceManager.swift; sourceTree = "<group>"; };
+		8A0000020000000000000013 /* TunnelManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TunnelManager.swift; sourceTree = "<group>"; };
+		8A0000020000000000000014 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
+		8A0000020000000000000015 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
+		8A0000020000000000000016 /* LocationSpoofer.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = LocationSpoofer.entitlements; sourceTree = "<group>"; };
+		8A0000020000000000000017 /* OnboardingView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OnboardingView.swift; sourceTree = "<group>"; };
+		8A0000020000000000000018 /* AutoSetupManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AutoSetupManager.swift; sourceTree = "<group>"; };
+		8A0000020000000000000019 /* OnboardingIllustrations.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OnboardingIllustrations.swift; sourceTree = "<group>"; };
+		8A0000030000000000000001 /* LocationSpoofer.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = LocationSpoofer.app; sourceTree = BUILT_PRODUCTS_DIR; };
+/* End PBXFileReference section */
+
+/* Begin PBXFrameworksBuildPhase section */
+		8A0000040000000000000001 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXFrameworksBuildPhase section */
+
+/* Begin PBXGroup section */
+		8A0000050000000000000001 = {
+			isa = PBXGroup;
+			children = (
+				8A0000050000000000000002 /* LocationSpoofer */,
+				8A0000050000000000000003 /* Products */,
+			);
+			sourceTree = "<group>";
+		};
+		8A0000050000000000000002 /* LocationSpoofer */ = {
+			isa = PBXGroup;
+			children = (
+				8A0000020000000000000001 /* LocationSpooferApp.swift */,
+				8A0000050000000000000004 /* Views */,
+				8A0000050000000000000005 /* Models */,
+				8A0000050000000000000006 /* Managers */,
+				8A0000050000000000000007 /* Resources */,
+				8A0000020000000000000015 /* Info.plist */,
+				8A0000020000000000000016 /* LocationSpoofer.entitlements */,
+			);
+			path = LocationSpoofer;
+			sourceTree = "<group>";
+		};
+		8A0000050000000000000003 /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				8A0000030000000000000001 /* LocationSpoofer.app */,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+		8A0000050000000000000004 /* Views */ = {
+			isa = PBXGroup;
+			children = (
+				8A0000020000000000000002 /* ContentView.swift */,
+				8A0000020000000000000003 /* MapViewRepresentable.swift */,
+				8A0000020000000000000004 /* DeviceStatusView.swift */,
+				8A0000020000000000000005 /* ActionButtonsView.swift */,
+				8A0000020000000000000006 /* QuickLocationsView.swift */,
+				8A0000020000000000000007 /* RouteSimulationView.swift */,
+				8A0000020000000000000008 /* SettingsView.swift */,
+				8A0000020000000000000009 /* MenuBarView.swift */,
+				8A0000020000000000000017 /* OnboardingView.swift */,
+				8A0000020000000000000019 /* OnboardingIllustrations.swift */,
+			);
+			path = Views;
+			sourceTree = "<group>";
+		};
+		8A0000050000000000000005 /* Models */ = {
+			isa = PBXGroup;
+			children = (
+				8A0000020000000000000010 /* Coordinate.swift */,
+			);
+			path = Models;
+			sourceTree = "<group>";
+		};
+		8A0000050000000000000006 /* Managers */ = {
+			isa = PBXGroup;
+			children = (
+				8A0000020000000000000011 /* LocationManager.swift */,
+				8A0000020000000000000012 /* DeviceManager.swift */,
+				8A0000020000000000000013 /* TunnelManager.swift */,
+				8A0000020000000000000018 /* AutoSetupManager.swift */,
+			);
+			path = Managers;
+			sourceTree = "<group>";
+		};
+		8A0000050000000000000007 /* Resources */ = {
+			isa = PBXGroup;
+			children = (
+				8A0000020000000000000014 /* Assets.xcassets */,
+			);
+			path = Resources;
+			sourceTree = "<group>";
+		};
+/* End PBXGroup section */
+
+/* Begin PBXNativeTarget section */
+		8A0000060000000000000001 /* LocationSpoofer */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 8A0000080000000000000001 /* Build configuration list for PBXNativeTarget "LocationSpoofer" */;
+			buildPhases = (
+				8A0000070000000000000001 /* Sources */,
+				8A0000040000000000000001 /* Frameworks */,
+				8A0000070000000000000002 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = LocationSpoofer;
+			productName = LocationSpoofer;
+			productReference = 8A0000030000000000000001 /* LocationSpoofer.app */;
+			productType = "com.apple.product-type.application";
+		};
+/* End PBXNativeTarget section */
+
+/* Begin PBXProject section */
+		8A0000090000000000000001 /* Project object */ = {
+			isa = PBXProject;
+			attributes = {
+				BuildIndependentTargetsInParallel = 1;
+				LastSwiftUpdateCheck = 1520;
+				LastUpgradeCheck = 1520;
+				TargetAttributes = {
+					8A0000060000000000000001 = {
+						CreatedOnToolsVersion = 15.2;
+					};
+				};
+			};
+			buildConfigurationList = 8A0000080000000000000002 /* Build configuration list for PBXProject "LocationSpoofer" */;
+			compatibilityVersion = "Xcode 14.0";
+			developmentRegion = en;
+			hasScannedForEncodings = 0;
+			knownRegions = (
+				en,
+				Base,
+			);
+			mainGroup = 8A0000050000000000000001;
+			productRefGroup = 8A0000050000000000000003 /* Products */;
+			projectDirPath = "";
+			projectRoot = "";
+			targets = (
+				8A0000060000000000000001 /* LocationSpoofer */,
+			);
+		};
+/* End PBXProject section */
+
+/* Begin PBXResourcesBuildPhase section */
+		8A0000070000000000000002 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				8A0000010000000000000014 /* Assets.xcassets in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXResourcesBuildPhase section */
+
+/* Begin PBXSourcesBuildPhase section */
+		8A0000070000000000000001 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				8A0000010000000000000001 /* LocationSpooferApp.swift in Sources */,
+				8A0000010000000000000002 /* ContentView.swift in Sources */,
+				8A0000010000000000000003 /* MapViewRepresentable.swift in Sources */,
+				8A0000010000000000000004 /* DeviceStatusView.swift in Sources */,
+				8A0000010000000000000005 /* ActionButtonsView.swift in Sources */,
+				8A0000010000000000000006 /* QuickLocationsView.swift in Sources */,
+				8A0000010000000000000007 /* RouteSimulationView.swift in Sources */,
+				8A0000010000000000000008 /* SettingsView.swift in Sources */,
+				8A0000010000000000000009 /* MenuBarView.swift in Sources */,
+				8A0000010000000000000010 /* Coordinate.swift in Sources */,
+				8A0000010000000000000011 /* LocationManager.swift in Sources */,
+				8A0000010000000000000012 /* DeviceManager.swift in Sources */,
+				8A0000010000000000000013 /* TunnelManager.swift in Sources */,
+				8A0000010000000000000015 /* OnboardingView.swift in Sources */,
+				8A0000010000000000000016 /* AutoSetupManager.swift in Sources */,
+				8A0000010000000000000019 /* OnboardingIllustrations.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXSourcesBuildPhase section */
+
+/* Begin XCBuildConfiguration section */
+		8A000010000000000000001D /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++20";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = dwarf;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_TESTABILITY = YES;
+				ENABLE_USER_SCRIPT_SANDBOXING = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu17;
+				GCC_DYNAMIC_NO_PIC = NO;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_OPTIMIZATION_LEVEL = 0;
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					"DEBUG=1",
+					"$(inherited)",
+				);
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
+				MACOSX_DEPLOYMENT_TARGET = 13.0;
+				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
+				MTL_FAST_MATH = YES;
+				ONLY_ACTIVE_ARCH = YES;
+				SDKROOT = macosx;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = "DEBUG $(inherited)";
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+			};
+			name = Debug;
+		};
+		8A000010000000000000001E /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++20";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				ENABLE_NS_ASSERTIONS = NO;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_USER_SCRIPT_SANDBOXING = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu17;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
+				MACOSX_DEPLOYMENT_TARGET = 13.0;
+				MTL_ENABLE_DEBUG_INFO = NO;
+				MTL_FAST_MATH = YES;
+				SDKROOT = macosx;
+				SWIFT_COMPILATION_MODE = wholemodule;
+			};
+			name = Release;
+		};
+		8A000010000000000000001F /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_ENTITLEMENTS = LocationSpoofer/LocationSpoofer.entitlements;
+				CODE_SIGN_STYLE = Automatic;
+				COMBINE_HIDPI_IMAGES = YES;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = "";
+				ENABLE_HARDENED_RUNTIME = YES;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = LocationSpoofer/Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = "Location Spoofer";
+				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.utilities";
+				INFOPLIST_KEY_NSHumanReadableCopyright = "Copyright 2026. All rights reserved.";
+				INFOPLIST_KEY_NSPrincipalClass = NSApplication;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.locationspoofer.app;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 5.0;
+			};
+			name = Debug;
+		};
+		8A0000100000000000000020 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_ENTITLEMENTS = LocationSpoofer/LocationSpoofer.entitlements;
+				CODE_SIGN_STYLE = Automatic;
+				COMBINE_HIDPI_IMAGES = YES;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = "";
+				ENABLE_HARDENED_RUNTIME = YES;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = LocationSpoofer/Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = "Location Spoofer";
+				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.utilities";
+				INFOPLIST_KEY_NSHumanReadableCopyright = "Copyright 2026. All rights reserved.";
+				INFOPLIST_KEY_NSPrincipalClass = NSApplication;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.locationspoofer.app;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 5.0;
+			};
+			name = Release;
+		};
+/* End XCBuildConfiguration section */
+
+/* Begin XCConfigurationList section */
+		8A0000080000000000000001 /* Build configuration list for PBXNativeTarget "LocationSpoofer" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				8A000010000000000000001F /* Debug */,
+				8A0000100000000000000020 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		8A0000080000000000000002 /* Build configuration list for PBXProject "LocationSpoofer" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				8A000010000000000000001D /* Debug */,
+				8A000010000000000000001E /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+/* End XCConfigurationList section */
+	};
+	rootObject = 8A0000090000000000000001 /* Project object */;
+}
